@@ -16,17 +16,28 @@ class OData3Connection(object):
         'User-Agent': 'python-odata {0}'.format(version),
     }
 
-    def __init__(self):
-        import requests
-        self.session = requests.Session()
+    def __init__(self, session=None, auth=None):
+        if session is None:
+            import requests
+            self.session = requests.Session()
+        else:
+            self.session = session
+        self.auth = auth
+
+    def _apply_auth(self, kwargs):
+        if self.auth is not None:
+            kwargs['auth'] = self.auth
 
     def _do_get(self, *args, **kwargs):
+        self._apply_auth(kwargs)
         return self.session.get(*args, **kwargs)
 
     def _do_post(self, *args, **kwargs):
+        self._apply_auth(kwargs)
         return self.session.post(*args, **kwargs)
 
     def _do_put(self, *args, **kwargs):
+        self._apply_auth(kwargs)
         return self.session.put(*args, **kwargs)
 
     def _handle_odata_error(self, response):
@@ -91,10 +102,3 @@ class OData3Connection(object):
         if response.status_code == 201:
             data = response.json()
             return data
-
-
-class OAuth2Connection(OData3Connection):
-
-    def __init__(self, client_id, token):
-        from requests_oauthlib import OAuth2Session
-        self.session = OAuth2Session(client_id, token=token)

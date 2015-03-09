@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .connection import OData3Connection, OAuth2Connection
+from .connection import OData3Connection
 from .entity import Entity as EntityBase
 from .query import Query
 from .exceptions import ODataError
@@ -13,16 +13,11 @@ __all__ = (
 
 class ODataService(object):
 
-    def __init__(self, url, oauth2=None):
+    def __init__(self, url, session=None, auth=None):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
-        if oauth2 is not None:
-            client_id = oauth2.get('client_id')
-            token = oauth2.get('token')
-            self.connection = OAuth2Connection(client_id, token=token)
-        else:
-            self.connection = OData3Connection()
+        self.connection = OData3Connection(session=session, auth=auth)
 
         class Entity(EntityBase):
             __odata_url_base__ = url
