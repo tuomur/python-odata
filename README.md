@@ -84,14 +84,13 @@ Any values that are generated server-side are updated to the object:
 
 The _auth_ parameter is passed as-is to requests:
 
-
     from requests.auth import HTTPBasicAuth
     my_auth = HTTPBasicAuth('user', 'pass')
-    NorthwindService = ODataService('http://services.odata.org/V3/Northwind/Northwind.svc/', auth=my_auth)
+    MyService = ODataService(url, Base, auth=my_auth)
 
 
 Any requests-like session can be used as well:
 
     from requests_oauthlib import OAuth2Session
     my_session = OAuth2Session(client_id, token=token)
-    NorthwindService = ODataService('http://services.odata.org/V3/Northwind/Northwind.svc/', session=my_session)
+    MyService = ODataService(url, Base, session=my_session)
