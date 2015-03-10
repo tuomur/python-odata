@@ -50,7 +50,7 @@ class Query(object):
             return self.entity(from_data=row)
 
     def _format_params(self, options):
-        return '&'.join(['='.join((key, str(value))) for key, value in options.iteritems() if value is not None])
+        return '&'.join(['='.join((key, str(value))) for key, value in options.items() if value is not None])
 
     def _get_options(self):
         options = {

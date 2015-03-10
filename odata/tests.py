@@ -3,14 +3,16 @@
 import unittest
 
 from .service import ODataService
-from .entity import StringProperty, IntegerProperty
+from .entity import declarative_base, StringProperty, IntegerProperty
 
 
-NorthwindService = ODataService('http://services.odata.org/V3/Northwind/Northwind.svc/')
+Base = declarative_base()
+
+NorthwindService = ODataService('http://services.odata.org/V3/Northwind/Northwind.svc/', Base)
 service = NorthwindService
 
 
-class Customer(NorthwindService.Entity):
+class Customer(Base):
     __odata_collection__ = 'Customers'
     __odata_type__ = 'NorthwindModel.Customer'
 
@@ -27,7 +29,7 @@ class Customer(NorthwindService.Entity):
     fax = StringProperty('Fax')
 
 
-class Product(NorthwindService.Entity):
+class Product(Base):
     __odata_collection__ = 'Products'
     __odata_type__ = 'NorthwindModel.Product'
 

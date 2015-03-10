@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from .connection import OData3Connection
-from .entity import Entity as EntityBase
 from .query import Query
 from .exceptions import ODataError
 
@@ -13,17 +12,15 @@ __all__ = (
 
 class ODataService(object):
 
-    def __init__(self, url, session=None, auth=None):
+    def __init__(self, url, base, session=None, auth=None):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
         self.connection = OData3Connection(session=session, auth=auth)
 
-        class Entity(EntityBase):
-            __odata_url_base__ = url
-            __odata_connection__ = self.connection
-
-        self.Entity = Entity
+        self.base = base
+        base.__odata_url_base__ = url
+        base.__odata_connection__ = self.connection
 
     def __repr__(self):
         return '<ODataService at {0}>'.format(self.url)

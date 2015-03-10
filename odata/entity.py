@@ -90,7 +90,7 @@ class StringProperty(Property):
         return u"'{0}'".format(value)
 
 
-class Entity(object):
+class EntityBase(object):
     __odata_connection__ = None
     __odata_url_base__ = ''
     __odata_collection__ = 'Entities'
@@ -119,7 +119,7 @@ class Entity(object):
             return self.__odata_single_url__().format(pk=pk_value)
 
     def __new__(cls, *args, **kwargs):
-        i = super(Entity, cls).__new__(cls)
+        i = super(EntityBase, cls).__new__(cls)
         i.__odata__ = {
             'odata.type': cls.__odata_type__,
         }
@@ -136,3 +136,9 @@ class Entity(object):
 
     def __repr__(self):
         return '<{0}(Entity)>'.format(self.__class__.__name__)
+
+
+def declarative_base():
+    class Entity(EntityBase):
+        pass
+    return Entity

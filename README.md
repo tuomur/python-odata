@@ -12,19 +12,15 @@ A simple library for read/write access to OData services I hacked together.
 
 ### Reading data from service
 
-Create a new instance of the _Service_ class with the OData endpoint URL:
+This library mimics the SQLAlchemy API to some degree. Defining models is done
+in a similar fashion:
 
     from odata import ODataService
-    
-    NorthwindService = ODataService('http://services.odata.org/V3/Northwind/Northwind.svc/')
+    from odata.entity import declarative_base, StringProperty
 
-The generated _ODataService_ object has a property called _Entity_ which you 
-can subclass to create model classes of the data (a Collection) you are 
-accessing:
+    Base = declarative_base()
 
-    from odata.entity import StringProperty
-
-    class Customer(NorthwindService.Entity):
+    class Customer(Base):
         __odata_collection__ = 'Customers'
         __odata_type__ = 'NorthwindModel.Customer'
     
@@ -39,6 +35,11 @@ accessing:
         country = StringProperty('Country')
         phone = StringProperty('Phone')
         fax = StringProperty('Fax')
+
+Creating the service object:
+
+    url = 'http://services.odata.org/V3/Northwind/Northwind.svc/'
+    NorthwindService = ODataService(url, Base)
 
 Read a single entry from the collection:
 
