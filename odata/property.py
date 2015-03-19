@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-#
-# Author: Tuomas Mursu <tuomas.mursu@headpower.fi>
-# Copyright © 2015 HeadPower Oy
 
 
 class PropertyBase(object):
