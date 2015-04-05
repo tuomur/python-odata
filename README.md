@@ -38,7 +38,7 @@ in a similar fashion:
 
 Creating the service object:
 
-    url = 'http://services.odata.org/V3/Northwind/Northwind.svc/'
+    url = 'http://services.odata.org/V4/Northwind/Northwind.svc/'
     NorthwindService = ODataService(url, Base)
 
 Read a single entry from the collection:
