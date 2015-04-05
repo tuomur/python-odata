@@ -44,7 +44,7 @@ class ODataService(object):
         data = entity.__odata__.copy()
         pk_name, pk_prop = entity.__odata_pk_property__()
         data.pop(pk_prop.name)
-        print(data)
+
         saved_data = self.connection.execute_post(url, data)
         entity.__odata_dirty__ = []
 
@@ -59,7 +59,6 @@ class ODataService(object):
         dirty_keys = list(set([prop.name for prop in entity.__odata_dirty__]))
 
         patch_data = dict([(key, data[key]) for key in dirty_keys])
-        print(patch_data)
 
         instance_url = entity.__odata_instance_url__()
 
