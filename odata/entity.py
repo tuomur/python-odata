@@ -56,7 +56,12 @@ class EntityBase(object):
         return i
 
     def __repr__(self):
-        return '<{0}(Entity)>'.format(self.__class__.__name__)
+        v = self.__odata_pk_property__()
+        if v is not None:
+            pk_prop = v[1]
+            pk = self.__odata__[pk_prop.name]
+            return '<Entity({0}:{1})>'.format(self.__class__.__name__, pk)
+        return '<Entity({0})>'.format(self.__class__.__name__)
 
 
 def declarative_base():

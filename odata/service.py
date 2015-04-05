@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .connection import OData3Connection
+from .connection import ODataConnection
 from .query import Query
 from .exceptions import ODataError
 
@@ -16,7 +16,7 @@ class ODataService(object):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
-        self.connection = OData3Connection(session=session, auth=auth)
+        self.connection = ODataConnection(session=session, auth=auth)
 
         self.base = base
         base.__odata_url_base__ = url
@@ -55,10 +55,12 @@ class ODataService(object):
         """
         Creates a PATCH call to the service, sending only the modified values
         """
-        data = entity.__odata__.copy()
         dirty_keys = list(set([prop.name for prop in entity.__odata_dirty__]))
 
-        patch_data = dict([(key, data[key]) for key in dirty_keys])
+        patch_data = dict([(key, entity.__odata__[key]) for key in dirty_keys])
+
+        if len(patch_data) == 0:
+            return
 
         instance_url = entity.__odata_instance_url__()
 

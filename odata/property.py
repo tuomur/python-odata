@@ -14,7 +14,7 @@ class PropertyBase(object):
         self.primary_key = primary_key
 
     def __repr__(self):
-        return '<Property {0}>'.format(self.name)
+        return '<Property({0})>'.format(self.name)
 
     def __get__(self, instance, owner):
         """

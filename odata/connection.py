@@ -5,8 +5,10 @@ import json
 from odata import version
 from .exceptions import ODataError
 
+STATUS_CREATED = 201
 
-class OData3Connection(object):
+
+class ODataConnection(object):
 
     base_headers = {
         'Accept': 'application/json',
@@ -89,7 +91,7 @@ class OData3Connection(object):
 
         response = self._do_post(url, data=json.dumps(data), headers=headers)
         self._handle_odata_error(response)
-        if response.status_code == 201:
+        if response.status_code == STATUS_CREATED:
             data = response.json()
             return data
 
@@ -101,7 +103,7 @@ class OData3Connection(object):
 
         response = self._do_put(url, data=json.dumps(data), headers=headers)
         self._handle_odata_error(response)
-        if response.status_code == 201:
+        if response.status_code == STATUS_CREATED:
             data = response.json()
             return data
 
@@ -113,6 +115,6 @@ class OData3Connection(object):
 
         response = self._do_patch(url, data=json.dumps(data), headers=headers)
         self._handle_odata_error(response)
-        if response.status_code == 201:
+        if response.status_code == STATUS_CREATED:
             data = response.json()
             return data
