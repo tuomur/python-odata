@@ -3,12 +3,13 @@
 import unittest
 
 from .service import ODataService
-from .entity import declarative_base, StringProperty, IntegerProperty
+from .entity import declarative_base
+from .property import StringProperty, IntegerProperty
 
 
 Base = declarative_base()
 
-NorthwindService = ODataService('http://services.odata.org/V3/Northwind/Northwind.svc/', Base)
+NorthwindService = ODataService('http://services.odata.org/V4/Northwind/Northwind.svc/', Base)
 service = NorthwindService
 
 

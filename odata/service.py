@@ -28,32 +28,46 @@ class ODataService(object):
     def query(self, entitycls):
         return Query(entitycls)
 
-    def save(self, new_object):
-        url = new_object.__odata_url__()
-        pk_name, pk_prop = new_object.__odata_pk_property__()
-
-        data = new_object.__odata__.copy()
-        instance_url = new_object.__odata_instance_url__()
-        data.pop(pk_prop.name)
+    def save(self, entity):
+        instance_url = entity.__odata_instance_url__()
 
         if instance_url is None:
-            saved_data = self.connection.execute_post(url, data)
+            self._insert_new(entity)
         else:
-            saved_data = self.connection.execute_put(instance_url, data)
+            self._update_existing(entity)
 
-        # Received object's data in response
+    def _insert_new(self, entity):
+        """
+        Creates a POST call to the service, sending the complete new entity
+        """
+        url = entity.__odata_url__()
+        data = entity.__odata__.copy()
+        pk_name, pk_prop = entity.__odata_pk_property__()
+        data.pop(pk_prop.name)
+        print(data)
+        saved_data = self.connection.execute_post(url, data)
+        entity.__odata_dirty__ = []
+
         if saved_data is not None:
+            entity.__odata__.update(saved_data)
 
-            new_object.__odata__.update(saved_data)
+    def _update_existing(self, entity):
+        """
+        Creates a PATCH call to the service, sending only the modified values
+        """
+        data = entity.__odata__.copy()
+        dirty_keys = list(set([prop.name for prop in entity.__odata_dirty__]))
 
-        # Update object manually
-        elif instance_url is not None:
+        patch_data = dict([(key, data[key]) for key in dirty_keys])
+        print(patch_data)
 
+        instance_url = entity.__odata_instance_url__()
+
+        saved_data = self.connection.execute_patch(instance_url, patch_data)
+        entity.__odata_dirty__ = []
+
+        if saved_data is None:
             saved_data = self.connection.execute_get(instance_url)
 
-        # Drop unnecessary values
-        for key in saved_data.keys():
-            if 'odata.' in key:
-                saved_data.pop(key)
-
-        new_object.__odata__.update(saved_data)
+        if saved_data is not None:
+            entity.__odata__.update(saved_data)

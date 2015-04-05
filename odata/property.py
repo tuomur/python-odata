@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from decimal import Decimal
+
 
 class PropertyBase(object):
 
@@ -23,7 +25,8 @@ class PropertyBase(object):
             return self
 
         if self.name in instance.__odata__:
-            return instance.__odata__[self.name]
+            raw_data = instance.__odata__[self.name]
+            return self._return_data(raw_data)
         else:
             raise AttributeError()
 
@@ -32,7 +35,20 @@ class PropertyBase(object):
         :type instance: odata.entity.EntityBase
         """
         if self.name in instance.__odata__:
-            instance.__odata__[self.name] = value
+            new_value = self._set_data(value)
+            old_value = instance.__odata__[self.name]
+            if new_value != old_value:
+                instance.__odata__[self.name] = new_value
+                if self not in instance.__odata_dirty__:
+                    instance.__odata_dirty__.append(self)
+
+    def _set_data(self, value):
+        """ Called when serializing the value to JSON """
+        return value
+
+    def _return_data(self, value):
+        """ Called when deserializing the value from JSON to Python """
+        return value
 
     def escape_value(self, value):
         return value
@@ -84,3 +100,16 @@ class StringProperty(PropertyBase):
 
     def escape_value(self, value):
         return u"'{0}'".format(value)
+
+
+class FloatProperty(PropertyBase):
+    pass
+
+
+class DecimalProperty(PropertyBase):
+
+    def _set_data(self, value):
+        return float(value)
+
+    def _return_data(self, value):
+        return Decimal(str(value))

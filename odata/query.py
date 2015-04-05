@@ -31,7 +31,7 @@ class Query(object):
                 for row in value:
                     yield self._create_model(row)
 
-                if 'odata.nextLink' in data:
+                if '@odata.nextLink' in data:
                     self.offset += value_length
                 else:
                     break
@@ -88,9 +88,10 @@ class Query(object):
     def first(self):
         oldvalue = self.limit
         self.limit = 1
-        data = [row for row in self.__iter__()][0]
-        self.limit = oldvalue
-        return data
+        data = [row for row in self.__iter__()]
+        if data:
+            self.limit = oldvalue
+            return data[0]
 
     @staticmethod
     def and_(value1, value2):

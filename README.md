@@ -2,7 +2,7 @@
 
 A simple library for read/write access to OData services I hacked together.
 
-- Supports OData version 3.0 (Not tested on anything else, really)
+- Supports OData version 4.0 (Not tested on anything else, really)
 - Requires JSON format support from the service
 - Pure Python
 - Should work on both Python 2.x and 3.x

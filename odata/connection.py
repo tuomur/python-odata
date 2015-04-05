@@ -10,9 +10,7 @@ class OData3Connection(object):
 
     base_headers = {
         'Accept': 'application/json',
-        'MinDataServiceVersion': '3.0',
-        'DataServiceVersion': '3.0',
-        'MaxDataServiceVersion': '3.0',
+        'OData-Version': '4.0',
         'User-Agent': 'python-odata {0}'.format(version),
     }
 
@@ -39,6 +37,10 @@ class OData3Connection(object):
     def _do_put(self, *args, **kwargs):
         self._apply_auth(kwargs)
         return self.session.put(*args, **kwargs)
+
+    def _do_patch(self, *args, **kwargs):
+        self._apply_auth(kwargs)
+        return self.session.patch(*args, **kwargs)
 
     def _handle_odata_error(self, response):
         try:
@@ -98,6 +100,18 @@ class OData3Connection(object):
         headers.update(self.base_headers)
 
         response = self._do_put(url, data=json.dumps(data), headers=headers)
+        self._handle_odata_error(response)
+        if response.status_code == 201:
+            data = response.json()
+            return data
+
+    def execute_patch(self, url, data):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        headers.update(self.base_headers)
+
+        response = self._do_patch(url, data=json.dumps(data), headers=headers)
         self._handle_odata_error(response)
         if response.status_code == 201:
             data = response.json()

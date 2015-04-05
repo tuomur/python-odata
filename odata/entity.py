@@ -7,7 +7,7 @@ except ImportError:
     # noinspection PyUnresolvedReferences
     from urlparse import urljoin
 
-from .property import PropertyBase, StringProperty, IntegerProperty
+from .property import PropertyBase
 
 
 class EntityBase(object):
@@ -41,8 +41,9 @@ class EntityBase(object):
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)
         i.__odata__ = {
-            'odata.type': cls.__odata_type__,
+            '@odata.type': cls.__odata_type__,
         }
+        i.__odata_dirty__ = []
 
         if 'from_data' in kwargs:
             i.__odata__.update(kwargs.pop('from_data'))
