@@ -7,6 +7,7 @@ from odata import version
 
 requires = (
     'requests>=2.0',
+    'dateutil',
 )
 
 setup(

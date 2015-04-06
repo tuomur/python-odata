@@ -2,6 +2,8 @@
 
 from decimal import Decimal
 
+import dateutil.parser
+
 
 class PropertyBase(object):
 
@@ -113,3 +115,12 @@ class DecimalProperty(PropertyBase):
 
     def _return_data(self, value):
         return Decimal(str(value))
+
+
+class DatetimeProperty(PropertyBase):
+
+    def _set_data(self, value):
+        return value.isoformat()
+
+    def _return_data(self, value):
+        return dateutil.parser.parse(value)

@@ -28,6 +28,10 @@ class ODataService(object):
     def query(self, entitycls):
         return Query(entitycls)
 
+    def delete(self, entity):
+        instance_url = entity.__odata_instance_url__()
+        self.connection.execute_delete(instance_url)
+
     def save(self, entity):
         instance_url = entity.__odata_instance_url__()
 

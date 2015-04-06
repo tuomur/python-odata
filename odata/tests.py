@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from decimal import Decimal
 import unittest
 
 from .service import ODataService
 from .entity import declarative_base
-from .property import StringProperty, IntegerProperty
+from .property import StringProperty, IntegerProperty, DecimalProperty
 
 
 Base = declarative_base()
@@ -41,7 +42,7 @@ class Product(Base):
     quantity_per_unit = StringProperty('QuantityPerUnit')
 
 
-class ODataTest(unittest.TestCase):
+class NorthwindReadTest(unittest.TestCase):
 
     def test_query_one(self):
         q = service.query(Customer)
@@ -91,3 +92,54 @@ class ODataTest(unittest.TestCase):
 
         data = q.all()
         assert len(data) == 3, 'data length wrong'
+
+
+LocalBase = declarative_base()
+
+ReadWriteService = ODataService('http://localhost:49975/', LocalBase)
+
+
+class LocalProduct(LocalBase):
+    __odata_collection__ = 'Products'
+    __odata_type__ = 'WebApplication2.Models.Product'
+
+    id = IntegerProperty('Id', primary_key=True)
+    name = StringProperty('Name')
+    price = DecimalProperty('Price')
+    category = StringProperty('Category')
+
+
+class ReadWriteTest(unittest.TestCase):
+
+    def test_1_insert_new(self):
+        n = LocalProduct()
+        n.name = 'testing'
+        n.price = Decimal('12.3')
+        n.category = 'testing category'
+
+        ReadWriteService.save(n)
+
+        assert n.id is not None, 'creating new object did not receive updated data from server'
+
+    def test_2_update_existing(self):
+        q = ReadWriteService.query(LocalProduct)
+        n = q.first()
+
+        value = 'something else'
+        n.name = value
+        ReadWriteService.save(n)
+
+        assert n.name == 'something else', 'name was not changed'
+
+    def test_3_delete(self):
+        q = ReadWriteService.query(LocalProduct)
+        q.order_by(LocalProduct.id.desc())
+        last = q.first()
+        last_id = last.id
+
+        ReadWriteService.delete(last)
+
+        q = ReadWriteService.query(LocalProduct)
+        q.filter(LocalProduct.id == last_id)
+        notexisting = q.first()
+        assert notexisting is None, 'object was not properly deleted'

@@ -44,6 +44,10 @@ class ODataConnection(object):
         self._apply_auth(kwargs)
         return self.session.patch(*args, **kwargs)
 
+    def _do_delete(self, *args, **kwargs):
+        self._apply_auth(kwargs)
+        return self.session.delete(*args, **kwargs)
+
     def _handle_odata_error(self, response):
         try:
             response.raise_for_status()
@@ -55,16 +59,17 @@ class ODataConnection(object):
 
             if 'application/json' in response_ct:
                 errordata = response.json()
-                if 'odata.error' in errordata:
-                    odata_error = errordata.get('odata.error')
+
+                if 'error' in errordata:
+                    odata_error = errordata.get('error')
 
                     if 'code' in odata_error:
-                        code = odata_error.get('code', code)
+                        code = odata_error.get('code') or code
                     if 'message' in odata_error:
-                        message = odata_error['message'].get('value', message)
+                        message = odata_error.get('message') or message
                     if 'innererror' in odata_error:
                         ie = odata_error['innererror']
-                        detailed_message = ie.get('message', detailed_message)
+                        detailed_message = ie.get('message') or detailed_message
 
             msg = ' | '.join([code, message, detailed_message])
             raise ODataError(msg)
@@ -115,6 +120,10 @@ class ODataConnection(object):
 
         response = self._do_patch(url, data=json.dumps(data), headers=headers)
         self._handle_odata_error(response)
-        if response.status_code == STATUS_CREATED:
-            data = response.json()
-            return data
+
+    def execute_delete(self, url):
+        headers = {}
+        headers.update(self.base_headers)
+
+        response = self._do_delete(url, headers=headers)
+        self._handle_odata_error(response)
