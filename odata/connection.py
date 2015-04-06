@@ -1,11 +1,25 @@
 # -*- coding: utf-8 -*-
 
 import json
+import functools
+
+import requests
+from requests.exceptions import RequestException
 
 from odata import version
-from .exceptions import ODataError
+from .exceptions import ODataError, ODataConnectionError
 
 STATUS_CREATED = 201
+
+
+def catch_requests_errors(fn):
+    @functools.wraps(fn)
+    def inner(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except RequestException as e:
+            raise ODataConnectionError(str(e))
+    return inner
 
 
 class ODataConnection(object):
@@ -15,45 +29,53 @@ class ODataConnection(object):
         'OData-Version': '4.0',
         'User-Agent': 'python-odata {0}'.format(version),
     }
+    timeout = 90
 
     def __init__(self, session=None, auth=None):
         if session is None:
-            import requests
             self.session = requests.Session()
         else:
             self.session = session
         self.auth = auth
 
-    def _apply_auth(self, kwargs):
+    def _apply_options(self, kwargs):
+        kwargs['timeout'] = self.timeout
+
         if self.auth is not None:
             kwargs['auth'] = self.auth
 
+    @catch_requests_errors
     def _do_get(self, *args, **kwargs):
-        self._apply_auth(kwargs)
+        self._apply_options(kwargs)
         return self.session.get(*args, **kwargs)
 
+    @catch_requests_errors
     def _do_post(self, *args, **kwargs):
-        self._apply_auth(kwargs)
+        self._apply_options(kwargs)
         return self.session.post(*args, **kwargs)
 
+    @catch_requests_errors
     def _do_put(self, *args, **kwargs):
-        self._apply_auth(kwargs)
+        self._apply_options(kwargs)
         return self.session.put(*args, **kwargs)
 
+    @catch_requests_errors
     def _do_patch(self, *args, **kwargs):
-        self._apply_auth(kwargs)
+        self._apply_options(kwargs)
         return self.session.patch(*args, **kwargs)
 
+    @catch_requests_errors
     def _do_delete(self, *args, **kwargs):
-        self._apply_auth(kwargs)
+        self._apply_options(kwargs)
         return self.session.delete(*args, **kwargs)
 
     def _handle_odata_error(self, response):
         try:
             response.raise_for_status()
         except:
+            status_code = 'HTTP {0}'.format(response.status_code)
             code = 'None'
-            message = 'Unknown error'
+            message = 'Server did not supply any error messages'
             detailed_message = 'None'
             response_ct = response.headers.get('content-type')
 
@@ -71,7 +93,7 @@ class ODataConnection(object):
                         ie = odata_error['innererror']
                         detailed_message = ie.get('message') or detailed_message
 
-            msg = ' | '.join([code, message, detailed_message])
+            msg = ' | '.join([status_code, code, message, detailed_message])
             raise ODataError(msg)
 
     def execute_get(self, url, params=None):
