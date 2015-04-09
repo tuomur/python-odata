@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 from .connection import ODataConnection
 from .query import Query
 from .exceptions import ODataError
@@ -17,6 +19,7 @@ class ODataService(object):
         self.metadata_url = ''
         self.collections = {}
         self.connection = ODataConnection(session=session, auth=auth)
+        self.log = logging.getLogger('odata.service')
 
         self.base = base
         base.__odata_url_base__ = url
@@ -29,8 +32,10 @@ class ODataService(object):
         return Query(entitycls)
 
     def delete(self, entity):
+        self.log.info(u'Deleting entity: {0}'.format(entity))
         instance_url = entity.__odata_instance_url__()
         self.connection.execute_delete(instance_url)
+        self.log.info(u'Success')
 
     def save(self, entity):
         instance_url = entity.__odata_instance_url__()
@@ -44,6 +49,8 @@ class ODataService(object):
         """
         Creates a POST call to the service, sending the complete new entity
         """
+        self.log.info(u'Saving new entity')
+
         url = entity.__odata_url__()
         data = entity.__odata__.copy()
         pk_name, pk_prop = entity.__odata_pk_property__()
@@ -54,6 +61,8 @@ class ODataService(object):
 
         if saved_data is not None:
             entity.__odata__.update(saved_data)
+
+        self.log.info(u'Success')
 
     def _update_existing(self, entity):
         """
@@ -66,13 +75,18 @@ class ODataService(object):
         if len(patch_data) == 0:
             return
 
+        self.log.info(u'Updating existing entity: {0}'.format(entity))
+
         instance_url = entity.__odata_instance_url__()
 
         saved_data = self.connection.execute_patch(instance_url, patch_data)
         entity.__odata_dirty__ = []
 
         if saved_data is None:
+            self.log.info(u'Reloading entity from service')
             saved_data = self.connection.execute_get(instance_url)
 
         if saved_data is not None:
             entity.__odata__.update(saved_data)
+
+        self.log.info(u'Success')

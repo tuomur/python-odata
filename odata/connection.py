@@ -2,6 +2,7 @@
 
 import json
 import functools
+import logging
 
 import requests
 from requests.exceptions import RequestException
@@ -37,6 +38,7 @@ class ODataConnection(object):
         else:
             self.session = session
         self.auth = auth
+        self.log = logging.getLogger('odata.connection')
 
     def _apply_options(self, kwargs):
         kwargs['timeout'] = self.timeout
@@ -100,6 +102,10 @@ class ODataConnection(object):
         headers = {}
         headers.update(self.base_headers)
 
+        self.log.debug(u'GET {0}'.format(url))
+        if params:
+            self.log.debug(u'Query: {0}'.format(params))
+
         response = self._do_get(url, params=params, headers=headers)
         self._handle_odata_error(response)
         response_ct = response.headers.get('content-type')
@@ -116,10 +122,16 @@ class ODataConnection(object):
         }
         headers.update(self.base_headers)
 
-        response = self._do_post(url, data=json.dumps(data), headers=headers)
+        data = json.dumps(data)
+
+        self.log.debug(u'POST {0}'.format(url))
+        self.log.debug(u'Payload: {0}'.format(data))
+
+        response = self._do_post(url, data=data, headers=headers)
         self._handle_odata_error(response)
         if response.status_code == STATUS_CREATED:
             data = response.json()
+            self.log.debug(u'Received: {0}'.format(data))
             return data
 
     def execute_put(self, url, data):
@@ -140,12 +152,19 @@ class ODataConnection(object):
         }
         headers.update(self.base_headers)
 
-        response = self._do_patch(url, data=json.dumps(data), headers=headers)
+        data = json.dumps(data)
+
+        self.log.debug(u'PATCH {0}'.format(url))
+        self.log.debug(u'Payload: {0}'.format(data))
+
+        response = self._do_patch(url, data=data, headers=headers)
         self._handle_odata_error(response)
 
     def execute_delete(self, url):
         headers = {}
         headers.update(self.base_headers)
+
+        self.log.debug(u'DELETE {0}'.format(url))
 
         response = self._do_delete(url, headers=headers)
         self._handle_odata_error(response)
