@@ -3,6 +3,7 @@
 import logging
 
 from .connection import ODataConnection
+from .metadata import MetaData
 from .query import Query
 from .exceptions import ODataError
 
@@ -14,12 +15,17 @@ __all__ = (
 
 class ODataService(object):
 
-    def __init__(self, url, base, session=None, auth=None):
+    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
         self.connection = ODataConnection(session=session, auth=auth)
         self.log = logging.getLogger('odata.service')
+
+        self.entities = {}
+        self.metadata = MetaData(self)
+        if reflect_entities:
+            base, self.entities = self.metadata.get_entity_sets()
 
         self.base = base
         base.__odata_url_base__ = url

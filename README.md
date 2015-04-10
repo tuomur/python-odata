@@ -4,9 +4,12 @@ A simple library for read/write access to OData services I hacked together.
 
 - Supports OData version 4.0 (Not tested on anything else, really)
 - Requires JSON format support from the service
-- Pure Python
 - Should work on both Python 2.x and 3.x
 
+## Dependencies
+
+- requests >= 2.0
+- lxml
 
 ## Examples
 
@@ -39,7 +42,7 @@ in a similar fashion:
 Creating the service object:
 
     url = 'http://services.odata.org/V4/Northwind/Northwind.svc/'
-    NorthwindService = ODataService(url, Base)
+    NorthwindService = ODataService(url, base=Base)
 
 Read a single entry from the collection:
 
@@ -80,6 +83,34 @@ Any values that are generated server-side are updated to the object:
     8364
 
 
+### Updating data
+
+Any modifications done to the entity can be saved by calling `ODataService.save()` again.
+This sends only the changed values to the service with a HTTP PATCH call.
+
+    new_customer.address = 'Street 123'
+    NorthwindService.save(new_customer)
+
+
+### Deleting data
+
+Call the service method:
+
+    NorthwindService.delete(new_customer)
+
+
+### Reflection
+
+The models can be read from the service metadata as well, without defining any classes yourself.
+
+    NorthwindService = ODataService(url, reflect_entities=True)
+    Customer = NorthwindService.entities.get('Customer')
+    
+    c = NorthwindService.query(Customer).first()
+    c.Address = 'Somewhere else'
+    NorthwindService.save(c)
+
+
 ### Authentication
 
 The _auth_ parameter is passed as-is to requests:
@@ -94,3 +125,9 @@ Any requests-like session can be used as well:
     from requests_oauthlib import OAuth2Session
     my_session = OAuth2Session(client_id, token=token)
     MyService = ODataService(url, Base, session=my_session)
+
+
+## Exceptions
+
+All exceptions are derived from `odata.exceptions.ODataError`. The exception's 
+`message` property contains the error message received from the service.
