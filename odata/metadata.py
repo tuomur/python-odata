@@ -27,12 +27,12 @@ class MetaData(object):
     def property_type_to_python(self, edm_type):
         return self.property_types.get(edm_type, StringProperty)
 
-    def get_entity_sets(self):
+    def get_entity_sets(self, base=None):
         document = self.load_document()
         schemas, entity_sets = self.parse_document(document)
 
         entities = {}
-        Base = declarative_base()
+        Base = base or declarative_base()
 
         for entity_set in entity_sets:
             schema = entity_set['schema']
@@ -48,6 +48,11 @@ class MetaData(object):
 
                 for prop in schema.get('properties'):
                     prop_name = prop['name']
+
+                    if hasattr(Entity, prop_name):
+                        # do not replace existing properties (from Base)
+                        continue
+
                     type_ = self.property_type_to_python(prop['type'])
                     type_options = {
                         'primary_key': prop['is_primary_key']

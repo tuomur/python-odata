@@ -25,7 +25,7 @@ class ODataService(object):
         self.entities = {}
         self.metadata = MetaData(self)
         if reflect_entities:
-            base, self.entities = self.metadata.get_entity_sets()
+            base, self.entities = self.metadata.get_entity_sets(base=base)
 
         self.base = base
         base.__odata_url_base__ = url
