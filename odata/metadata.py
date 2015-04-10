@@ -3,7 +3,7 @@
 from lxml import etree
 
 from .entity import declarative_base
-from .property import StringProperty, IntegerProperty, DecimalProperty
+from .property import StringProperty, IntegerProperty, DecimalProperty, DatetimeProperty, BooleanProperty
 
 
 class MetaData(object):
@@ -18,6 +18,8 @@ class MetaData(object):
         'Edm.Int64': IntegerProperty,
         'Edm.String': StringProperty,
         'Edm.Decimal': DecimalProperty,
+        'Edm.DateTimeOffset': DatetimeProperty,
+        'Edm.Boolean': BooleanProperty,
     }
 
     def __init__(self, service):

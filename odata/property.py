@@ -104,6 +104,20 @@ class StringProperty(PropertyBase):
         return u"'{0}'".format(value)
 
 
+class BooleanProperty(PropertyBase):
+
+    def escape_value(self, value):
+        if value:
+            return 'true'
+        return 'false'
+
+    def _set_data(self, value):
+        return bool(value)
+
+    def _return_data(self, value):
+        return bool(value)
+
+
 class FloatProperty(PropertyBase):
     pass
 
@@ -120,7 +134,10 @@ class DecimalProperty(PropertyBase):
 class DatetimeProperty(PropertyBase):
 
     def _set_data(self, value):
-        return value.isoformat()
+        r = value.isoformat()
+        if value.tzinfo is None:
+            r += 'Z'
+        return r
 
     def _return_data(self, value):
         return dateutil.parser.parse(value)
