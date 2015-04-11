@@ -25,10 +25,18 @@ class EntityBase(object):
         return cls.__odata_url__() + u'({pk})'
 
     @classmethod
-    def __odata_pk_property__(cls):
+    def __odata_properties__(cls):
+        props = []
         for prop_name in cls.__dict__:
             prop = cls.__dict__.get(prop_name)
-            if isinstance(prop, PropertyBase) and prop.primary_key is True:
+            if isinstance(prop, PropertyBase):
+                props.append((prop_name, prop))
+        return props
+
+    @classmethod
+    def __odata_pk_property__(cls):
+        for prop_name, prop in cls.__odata_properties__():
+            if prop.primary_key is True:
                 return prop_name, prop
 
     def __odata_instance_url__(self):
@@ -48,10 +56,8 @@ class EntityBase(object):
         if 'from_data' in kwargs:
             i.__odata__.update(kwargs.pop('from_data'))
         else:
-            for prop_name in cls.__dict__:
-                prop = cls.__dict__.get(prop_name)
-                if isinstance(prop, PropertyBase):
-                    i.__odata__[prop.name] = None
+            for prop_name, prop in cls.__odata_properties__():
+                i.__odata__[prop.name] = None
 
         return i
 

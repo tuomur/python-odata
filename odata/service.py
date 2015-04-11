@@ -58,11 +58,15 @@ class ODataService(object):
         self.log.info(u'Saving new entity')
 
         url = entity.__odata_url__()
-        data = entity.__odata__.copy()
-        pk_name, pk_prop = entity.__odata_pk_property__()
-        data.pop(pk_prop.name)
 
-        saved_data = self.connection.execute_post(url, data)
+        insert_data = {}
+        for _, prop in entity.__odata_properties__():
+            insert_data[prop.name] = entity.__odata__[prop.name]
+
+        _, pk_prop = entity.__odata_pk_property__()
+        insert_data.pop(pk_prop.name)
+
+        saved_data = self.connection.execute_post(url, insert_data)
         entity.__odata_dirty__ = []
 
         if saved_data is not None:
