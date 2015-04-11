@@ -107,7 +107,7 @@ class IntegerProperty(PropertyBase):
 class StringProperty(PropertyBase):
 
     def escape_value(self, value):
-        return u"'{0}'".format(value)
+        return u"'{0}'".format(value.replace("'", "''"))
 
 
 class BooleanProperty(PropertyBase):
