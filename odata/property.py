@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from decimal import Decimal
+try:
+    # noinspection PyUnresolvedReferences
+    from urllib.parse import urljoin
+except ImportError:
+    # noinspection PyUnresolvedReferences
+    from urlparse import urljoin
 
 import dateutil.parser
 
@@ -141,3 +147,40 @@ class DatetimeProperty(PropertyBase):
 
     def _return_data(self, value):
         return dateutil.parser.parse(value)
+
+
+class Relationship(object):
+
+    def __init__(self, name, entitycls, collection=False):
+        self.name = name
+        self.entitycls = entitycls
+        self.is_collection = collection
+
+    def instances_from_data(self, raw_data):
+        if self.is_collection and 'value' in raw_data:
+            return [self.entitycls(from_data=d) for d in raw_data['value']]
+        else:
+            return self.entitycls(from_data=raw_data)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+
+        parent_url = instance.__odata_instance_url__()
+        parent_url += '/'
+        url = urljoin(parent_url, self.name)
+
+        if self.name in instance.__odata__:
+            raw_data = instance.__odata__[self.name]
+            if raw_data:
+                return self.instances_from_data(raw_data)
+
+        else:
+            # Read from service
+            cnx = self.entitycls.__odata_connection__
+            raw_data = cnx.execute_get(url)
+            if raw_data:
+                instance.__odata__[self.name] = raw_data
+                return self.instances_from_data(raw_data)
+
+            raise AttributeError()

@@ -18,6 +18,7 @@ class Query(object):
 
         self._select = []
         self._filters = []
+        self._expand = []
         self._order_by = []
         self.limit = 1000
         self.offset = 0
@@ -64,6 +65,9 @@ class Query(object):
         if self._filters:
             options['$filter'] = ' and '.join(self._filters)
 
+        if self._expand:
+            options['$expand'] = ','.join(self._expand)
+
         if self._order_by:
             options['$orderby'] = ','.join(self._order_by)
         return options
@@ -78,6 +82,10 @@ class Query(object):
 
     def filter(self, value):
         self._filters.append(value)
+
+    def expand(self, *values):
+        for prop in values:
+            self._expand.append(prop.name)
 
     def order_by(self, *values):
         self._order_by.extend(values)
