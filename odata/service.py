@@ -15,7 +15,7 @@ __all__ = (
 
 class ODataService(object):
 
-    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None):
+    def __init__(self, url, base=None, metadata=None, reflect_entities=False, session=None, auth=None):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
@@ -23,7 +23,7 @@ class ODataService(object):
         self.log = logging.getLogger('odata.service')
 
         self.entities = {}
-        self.metadata = MetaData(self)
+        self.metadata = metadata or MetaData(self)
         if reflect_entities:
             base, self.entities = self.metadata.get_entity_sets(base=base)
 

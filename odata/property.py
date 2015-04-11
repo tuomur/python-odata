@@ -156,6 +156,9 @@ class Relationship(object):
         self.entitycls = entitycls
         self.is_collection = collection
 
+    def __repr__(self):
+        return '<Relationship to {0}>'.format(self.entitycls)
+
     def instances_from_data(self, raw_data):
         if self.is_collection and 'value' in raw_data:
             return [self.entitycls(from_data=d) for d in raw_data['value']]
