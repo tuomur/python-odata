@@ -160,8 +160,8 @@ class Relationship(object):
         return '<Relationship to {0}>'.format(self.entitycls)
 
     def instances_from_data(self, raw_data):
-        if self.is_collection and 'value' in raw_data:
-            return [self.entitycls(from_data=d) for d in raw_data['value']]
+        if self.is_collection:
+            return [self.entitycls(from_data=d) for d in raw_data]
         else:
             return self.entitycls(from_data=raw_data)
 
@@ -182,7 +182,8 @@ class Relationship(object):
             # Read from service
             cnx = self.entitycls.__odata_connection__
             raw_data = cnx.execute_get(url)
-            if raw_data:
+            if raw_data and 'value' in raw_data:
+                raw_data = raw_data['value']
                 instance.__odata__[self.name] = raw_data
                 return self.instances_from_data(raw_data)
 
