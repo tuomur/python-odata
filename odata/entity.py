@@ -7,7 +7,7 @@ except ImportError:
     # noinspection PyUnresolvedReferences
     from urlparse import urljoin
 
-from .property import PropertyBase
+from .property import PropertyBase, Relationship
 
 
 class EntityBase(object):
@@ -34,6 +34,15 @@ class EntityBase(object):
         return props
 
     @classmethod
+    def __odata_nav_properties__(cls):
+        props = []
+        for prop_name in cls.__dict__:
+            prop = cls.__dict__.get(prop_name)
+            if isinstance(prop, Relationship):
+                props.append((prop_name, prop))
+        return props
+
+    @classmethod
     def __odata_pk_property__(cls):
         for prop_name, prop in cls.__odata_properties__():
             if prop.primary_key is True:
@@ -54,7 +63,9 @@ class EntityBase(object):
         i.__odata_dirty__ = []
 
         if 'from_data' in kwargs:
-            i.__odata__.update(kwargs.pop('from_data'))
+            raw_data = kwargs.pop('from_data')
+            for prop_name, prop in cls.__odata_properties__():
+                i.__odata__[prop.name] = raw_data.get(prop.name)
         else:
             for prop_name, prop in cls.__odata_properties__():
                 i.__odata__[prop.name] = None

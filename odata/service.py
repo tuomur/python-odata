@@ -59,7 +59,9 @@ class ODataService(object):
 
         url = entity.__odata_url__()
 
-        insert_data = {}
+        insert_data = {
+            '@odata.type': entity.__odata_type__,
+        }
         for _, prop in entity.__odata_properties__():
             insert_data[prop.name] = entity.__odata__[prop.name]
 
@@ -78,7 +80,7 @@ class ODataService(object):
         """
         Creates a PATCH call to the service, sending only the modified values
         """
-        dirty_keys = list(set([prop.name for prop in entity.__odata_dirty__]))
+        dirty_keys = list(set([pn for pn in entity.__odata_dirty__]))
 
         patch_data = dict([(key, entity.__odata__[key]) for key in dirty_keys])
 

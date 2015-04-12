@@ -47,8 +47,8 @@ class PropertyBase(object):
             old_value = instance.__odata__[self.name]
             if new_value != old_value:
                 instance.__odata__[self.name] = new_value
-                if self not in instance.__odata_dirty__:
-                    instance.__odata_dirty__.append(self)
+                if self.name not in instance.__odata_dirty__:
+                    instance.__odata_dirty__.append(self.name)
 
     def _set_data(self, value):
         """ Called when serializing the value to JSON """
@@ -156,6 +156,9 @@ class Relationship(object):
         self.entitycls = entitycls
         self.is_collection = collection
 
+        self.single = None
+        self.collection = None
+
     def __repr__(self):
         return '<Relationship to {0}>'.format(self.entitycls)
 
@@ -165,6 +168,12 @@ class Relationship(object):
         else:
             return self.entitycls(from_data=raw_data)
 
+    def __set__(self, instance, value):
+        if self.is_collection:
+            self.collection = value
+        else:
+            self.single = value
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
@@ -172,19 +181,15 @@ class Relationship(object):
         parent_url = instance.__odata_instance_url__()
         parent_url += '/'
         url = urljoin(parent_url, self.name)
+        cnx = self.entitycls.__odata_connection__
 
-        if self.name in instance.__odata__:
-            raw_data = instance.__odata__[self.name]
-            if raw_data:
-                return self.instances_from_data(raw_data)
-
+        if self.is_collection:
+            if self.collection is None:
+                raw_data = cnx.execute_get(url)
+                self.collection = self.instances_from_data(raw_data['value'])
+            return self.collection
         else:
-            # Read from service
-            cnx = self.entitycls.__odata_connection__
-            raw_data = cnx.execute_get(url)
-            if raw_data and 'value' in raw_data:
-                raw_data = raw_data['value']
-                instance.__odata__[self.name] = raw_data
-                return self.instances_from_data(raw_data)
-
-            raise AttributeError()
+            if self.single is None:
+                raw_data = cnx.execute_get(url)
+                self.single = self.instances_from_data(raw_data)
+            return self.single
