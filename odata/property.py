@@ -156,9 +156,6 @@ class Relationship(object):
         self.entitycls = entitycls
         self.is_collection = collection
 
-        self.single = None
-        self.collection = None
-
     def __repr__(self):
         return '<Relationship to {0}>'.format(self.entitycls)
 
@@ -169,14 +166,23 @@ class Relationship(object):
             return self.entitycls(from_data=raw_data)
 
     def __set__(self, instance, value):
+        cache = {}
+        instance.__odata_nav_cache__[self.name] = cache
         if self.is_collection:
-            self.collection = value
+            cache['collection'] = value
         else:
-            self.single = value
+            cache['single'] = value
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
+
+        ic = instance.__odata_nav_cache__
+        if self.name not in ic:
+            cache = {}
+            ic[self.name] = cache
+        else:
+            cache = ic[self.name]
 
         parent_url = instance.__odata_instance_url__()
         parent_url += '/'
@@ -184,12 +190,18 @@ class Relationship(object):
         cnx = self.entitycls.__odata_connection__
 
         if self.is_collection:
-            if self.collection is None:
+            if 'collection' not in cache:
                 raw_data = cnx.execute_get(url)
-                self.collection = self.instances_from_data(raw_data['value'])
-            return self.collection
+                if raw_data:
+                    cache['collection'] = self.instances_from_data(raw_data['value'])
+                else:
+                    cache['collection'] = []
+            return cache['collection']
         else:
-            if self.single is None:
+            if 'single' not in cache:
                 raw_data = cnx.execute_get(url)
-                self.single = self.instances_from_data(raw_data)
-            return self.single
+                if raw_data:
+                    cache['single'] = self.instances_from_data(raw_data)
+                else:
+                    cache['single'] = None
+            return cache['single']

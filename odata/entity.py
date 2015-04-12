@@ -61,6 +61,7 @@ class EntityBase(object):
             '@odata.type': cls.__odata_type__,
         }
         i.__odata_dirty__ = []
+        i.__odata_nav_cache__ = {}
 
         if 'from_data' in kwargs:
             raw_data = kwargs.pop('from_data')
