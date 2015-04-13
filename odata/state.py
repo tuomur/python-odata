@@ -144,17 +144,19 @@ class EntityState(object):
         return update_data
 
     def _clean_new_entity(self, entity):
+        """:type entity: odata.entity.EntityBase """
         insert_data = {
             '@odata.type': entity.__odata_type__,
         }
-        for _, prop in entity.__odata_properties__():
-            insert_data[prop.name] = entity.__odata__[prop.name]
+        es = entity.__odata__
+        for _, prop in es.properties:
+            insert_data[prop.name] = es[prop.name]
 
-        _, pk_prop = entity.__odata_pk_property__()
+        _, pk_prop = es.primary_key_property
         insert_data.pop(pk_prop.name)
 
         # Deep insert from nav properties
-        for prop_name, prop in entity.__odata_nav_properties__():
+        for prop_name, prop in es.navigation_properties:
             if prop.foreign_key:
                 insert_data.pop(prop.foreign_key, None)
 
