@@ -162,9 +162,9 @@ class Relationship(object):
 
     def instances_from_data(self, raw_data):
         if self.is_collection:
-            return [self.entitycls(from_data=d) for d in raw_data]
+            return [self.entitycls.__new__(self.entitycls, from_data=d) for d in raw_data]
         else:
-            return self.entitycls(from_data=raw_data)
+            return self.entitycls.__new__(self.entitycls, from_data=raw_data)
 
     def _get_parent_cache(self, instance):
         ic = instance.__odata_nav_cache__

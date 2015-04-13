@@ -48,7 +48,7 @@ class Query(object):
         if len(self._select):
             return row
         else:
-            return self.entity(from_data=row)
+            return self.entity.__new__(self.entity, from_data=row)
 
     def _format_params(self, options):
         return '&'.join(['='.join((key, str(value))) for key, value in options.items() if value is not None])
