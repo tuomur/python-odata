@@ -4,7 +4,7 @@ from lxml import etree
 
 from .entity import declarative_base
 from .property import StringProperty, IntegerProperty, DecimalProperty, \
-    DatetimeProperty, BooleanProperty, Relationship
+    DatetimeProperty, BooleanProperty, NavigationProperty
 
 
 class MetaData(object):
@@ -85,10 +85,12 @@ class MetaData(object):
 
                 for _search_entity in entities.values():
                     if _search_entity.__odata_schema__['type'] == search_type:
-                        setattr(entity, name, Relationship(name, _search_entity,
+                        nav = NavigationProperty(name,
+                            _search_entity,
                             collection=is_collection,
                             foreign_key=foreign_key,
-                            ))
+                            )
+                        setattr(entity, name, nav)
 
         return Base, entities
 

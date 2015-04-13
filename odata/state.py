@@ -3,7 +3,7 @@
 from __future__ import print_function
 import os
 
-from odata.property import PropertyBase, Relationship
+from odata.property import PropertyBase, NavigationProperty
 
 
 class EntityState(object):
@@ -105,7 +105,7 @@ class EntityState(object):
         cls = self.entity.__class__
         for prop_name in cls.__dict__:
             prop = cls.__dict__.get(prop_name)
-            if isinstance(prop, Relationship):
+            if isinstance(prop, NavigationProperty):
                 props.append((prop_name, prop))
         return props
 
