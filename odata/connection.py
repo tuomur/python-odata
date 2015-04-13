@@ -10,9 +10,6 @@ from requests.exceptions import RequestException
 from odata import version
 from .exceptions import ODataError, ODataConnectionError
 
-STATUS_CREATED = 201
-NO_CONTENT = 204
-
 
 def catch_requests_errors(fn):
     @functools.wraps(fn)
@@ -110,7 +107,7 @@ class ODataConnection(object):
         response = self._do_get(url, params=params, headers=headers)
         self._handle_odata_error(response)
         response_ct = response.headers.get('content-type', '')
-        if response.status_code == NO_CONTENT:
+        if response.status_code == requests.codes.no_content:
             return
         if 'application/json' in response_ct:
             data = response.json()
@@ -132,7 +129,7 @@ class ODataConnection(object):
 
         response = self._do_post(url, data=data, headers=headers)
         self._handle_odata_error(response)
-        if response.status_code == STATUS_CREATED:
+        if response.status_code == requests.codes.created:
             data = response.json()
             self.log.debug(u'Received: {0}'.format(data))
             return data
@@ -145,7 +142,7 @@ class ODataConnection(object):
 
         response = self._do_put(url, data=json.dumps(data), headers=headers)
         self._handle_odata_error(response)
-        if response.status_code == STATUS_CREATED:
+        if response.status_code == requests.codes.created:
             data = response.json()
             return data
 
