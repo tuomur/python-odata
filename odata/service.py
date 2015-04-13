@@ -51,14 +51,7 @@ class ODataService(object):
         else:
             self._update_existing(entity)
 
-    def _insert_new(self, entity):
-        """
-        Creates a POST call to the service, sending the complete new entity
-        """
-        self.log.info(u'Saving new entity')
-
-        url = entity.__odata_url__()
-
+    def _clean_new_entity(self, entity):
         insert_data = {
             '@odata.type': entity.__odata_type__,
         }
@@ -68,8 +61,34 @@ class ODataService(object):
         _, pk_prop = entity.__odata_pk_property__()
         insert_data.pop(pk_prop.name)
 
+        # Deep insert from nav properties
+        for prop_name, prop in entity.__odata_nav_properties__():
+            if prop.foreign_key:
+                insert_data.pop(prop.foreign_key, None)
+
+            value = getattr(entity, prop_name, None)
+            if value is not None:
+
+                if prop.is_collection:
+                    insert_data[prop.name] = [self._clean_new_entity(i) for i in value]
+                else:
+                    insert_data[prop.name] = self._clean_new_entity(value)
+
+        return insert_data
+
+    def _insert_new(self, entity):
+        """
+        Creates a POST call to the service, sending the complete new entity
+        """
+        self.log.info(u'Saving new entity')
+
+        url = entity.__odata_url__()
+
+        insert_data = self._clean_new_entity(entity)
+
         saved_data = self.connection.execute_post(url, insert_data)
         entity.__odata_dirty__ = []
+        entity.__odata_nav_cache__ = {}
 
         if saved_data is not None:
             entity.__odata__.update(saved_data)
@@ -82,7 +101,23 @@ class ODataService(object):
         """
         dirty_keys = list(set([pn for pn in entity.__odata_dirty__]))
 
-        patch_data = dict([(key, entity.__odata__[key]) for key in dirty_keys])
+        patch_data = {
+            '@odata.type': entity.__odata_type__,
+        }
+
+        for _, prop in entity.__odata_properties__():
+            if prop.name in dirty_keys:
+                patch_data[prop.name] = entity.__odata__[prop.name]
+
+        for prop_name, prop in entity.__odata_nav_properties__():
+            if prop.name in entity.__odata_dirty__:
+                value = getattr(entity, prop_name, None)
+                if value is not None:
+                    key = '{0}@odata.bind'.format(prop.name)
+                    if prop.is_collection:
+                        patch_data[key] = [i.__odata_id__() for i in value]
+                    else:
+                        patch_data[key] = value.__odata_id__()
 
         if len(patch_data) == 0:
             return
@@ -93,6 +128,7 @@ class ODataService(object):
 
         saved_data = self.connection.execute_patch(instance_url, patch_data)
         entity.__odata_dirty__ = []
+        entity.__odata_nav_cache__ = {}
 
         if saved_data is None:
             self.log.info(u'Reloading entity from service')

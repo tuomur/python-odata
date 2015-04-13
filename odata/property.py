@@ -151,10 +151,11 @@ class DatetimeProperty(PropertyBase):
 
 class Relationship(object):
 
-    def __init__(self, name, entitycls, collection=False):
+    def __init__(self, name, entitycls, collection=False, foreign_key=None):
         self.name = name
         self.entitycls = entitycls
         self.is_collection = collection
+        self.foreign_key = foreign_key
 
     def __repr__(self):
         return '<Relationship to {0}>'.format(self.entitycls)
@@ -165,26 +166,37 @@ class Relationship(object):
         else:
             return self.entitycls(from_data=raw_data)
 
-    def __set__(self, instance, value):
-        cache = {}
-        instance.__odata_nav_cache__[self.name] = cache
-        if self.is_collection:
-            cache['collection'] = value
-        else:
-            cache['single'] = value
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-
+    def _get_parent_cache(self, instance):
         ic = instance.__odata_nav_cache__
         if self.name not in ic:
             cache = {}
             ic[self.name] = cache
         else:
             cache = ic[self.name]
+        return cache
+
+    def __set__(self, instance, value):
+        cache = self._get_parent_cache(instance)
+        if self.is_collection:
+            cache['collection'] = value
+        else:
+            cache['single'] = value
+        if self.name not in instance.__odata_dirty__:
+            instance.__odata_dirty__.append(self.name)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
 
         parent_url = instance.__odata_instance_url__()
+        new_object = parent_url is None
+        cache = self._get_parent_cache(instance)
+
+        if new_object:
+            if self.is_collection:
+                return cache.get('collection', [])
+            return cache.get('single', None)
+
         parent_url += '/'
         url = urljoin(parent_url, self.name)
         cnx = self.entitycls.__odata_connection__

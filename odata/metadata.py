@@ -74,6 +74,7 @@ class MetaData(object):
             for schema_nav in schema.get('navigation_properties', []):
                 name = schema_nav['name']
                 type_ = schema_nav['type']
+                foreign_key = schema_nav['foreign_key']
 
                 is_collection = False
                 if type_.startswith('Collection('):
@@ -84,7 +85,10 @@ class MetaData(object):
 
                 for _search_entity in entities.values():
                     if _search_entity.__odata_schema__['type'] == search_type:
-                        setattr(entity, name, Relationship(name, _search_entity, collection=is_collection))
+                        setattr(entity, name, Relationship(name, _search_entity,
+                            collection=is_collection,
+                            foreign_key=foreign_key,
+                            ))
 
         return Base, entities
 
@@ -137,10 +141,17 @@ class MetaData(object):
                 for nav_property in xmlq(entity_type, 'edm:NavigationProperty'):
                     p_name = xmlq(nav_property, '@Name')[0]
                     p_type = xmlq(nav_property, '@Type')[0]
+                    p_foreign_key = None
+
+                    ref_constraint = xmlq(nav_property, 'edm:ReferentialConstraint')
+                    if ref_constraint:
+                        ref_constraint = ref_constraint[0]
+                        p_foreign_key = xmlq(ref_constraint, '@Property')[0]
 
                     entity['navigation_properties'].append({
                         'name': p_name,
                         'type': p_type,
+                        'foreign_key': p_foreign_key,
                     })
 
                 schema_dict['entities'].append(entity)

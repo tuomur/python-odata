@@ -24,6 +24,12 @@ class EntityBase(object):
     def __odata_single_url__(cls):
         return cls.__odata_url__() + u'({pk})'
 
+    def __odata_id__(self):
+        prop_name, prop = self.__odata_pk_property__()
+        value = getattr(self, prop_name, None)
+        if value:
+            return u'{0}({1})'.format(self.__odata_collection__, prop.escape_value(value))
+
     @classmethod
     def __odata_properties__(cls):
         props = []
