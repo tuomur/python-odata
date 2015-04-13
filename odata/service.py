@@ -2,6 +2,7 @@
 
 import logging
 
+from .entity import EntityBase
 from .connection import ODataConnection
 from .metadata import MetaData
 from .query import Query
@@ -38,101 +39,63 @@ class ODataService(object):
         return Query(entitycls)
 
     def delete(self, entity):
+        """
+        Creates a DELETE call to the service, deleting the entity
+        :type entity: EntityBase
+        """
         self.log.info(u'Deleting entity: {0}'.format(entity))
-        instance_url = entity.__odata_instance_url__()
-        self.connection.execute_delete(instance_url)
+        url = entity.__odata__.instance_url
+        self.connection.execute_delete(url)
         self.log.info(u'Success')
 
     def save(self, entity):
-        instance_url = entity.__odata_instance_url__()
+        instance_url = entity.__odata__.instance_url
 
         if instance_url is None:
             self._insert_new(entity)
         else:
             self._update_existing(entity)
 
-    def _clean_new_entity(self, entity):
-        insert_data = {
-            '@odata.type': entity.__odata_type__,
-        }
-        for _, prop in entity.__odata_properties__():
-            insert_data[prop.name] = entity.__odata__[prop.name]
-
-        _, pk_prop = entity.__odata_pk_property__()
-        insert_data.pop(pk_prop.name)
-
-        # Deep insert from nav properties
-        for prop_name, prop in entity.__odata_nav_properties__():
-            if prop.foreign_key:
-                insert_data.pop(prop.foreign_key, None)
-
-            value = getattr(entity, prop_name, None)
-            if value is not None:
-
-                if prop.is_collection:
-                    insert_data[prop.name] = [self._clean_new_entity(i) for i in value]
-                else:
-                    insert_data[prop.name] = self._clean_new_entity(value)
-
-        return insert_data
-
     def _insert_new(self, entity):
         """
         Creates a POST call to the service, sending the complete new entity
+        :type entity: EntityBase
         """
         self.log.info(u'Saving new entity')
 
         url = entity.__odata_url__()
 
-        insert_data = self._clean_new_entity(entity)
-
+        es = entity.__odata__
+        insert_data = es.data_for_insert()
         saved_data = self.connection.execute_post(url, insert_data)
-        entity.__odata_dirty__ = []
-        entity.__odata_nav_cache__ = {}
+        es.reset()
 
         if saved_data is not None:
-            entity.__odata__.update(saved_data)
+            es.update(saved_data)
 
         self.log.info(u'Success')
 
     def _update_existing(self, entity):
         """
         Creates a PATCH call to the service, sending only the modified values
+        :type entity: EntityBase
         """
-        dirty_keys = list(set([pn for pn in entity.__odata_dirty__]))
-
-        patch_data = {
-            '@odata.type': entity.__odata_type__,
-        }
-
-        for _, prop in entity.__odata_properties__():
-            if prop.name in dirty_keys:
-                patch_data[prop.name] = entity.__odata__[prop.name]
-
-        for prop_name, prop in entity.__odata_nav_properties__():
-            if prop.name in entity.__odata_dirty__:
-                value = getattr(entity, prop_name, None)
-                if value is not None:
-                    key = '{0}@odata.bind'.format(prop.name)
-                    if prop.is_collection:
-                        patch_data[key] = [i.__odata_id__() for i in value]
-                    else:
-                        patch_data[key] = value.__odata_id__()
+        es = entity.__odata__
+        patch_data = es.data_for_update()
 
         if len(patch_data) == 0:
             return
 
         self.log.info(u'Updating existing entity: {0}'.format(entity))
 
-        instance_url = entity.__odata_instance_url__()
+        url = es.instance_url
 
-        saved_data = self.connection.execute_patch(instance_url, patch_data)
-        entity.__odata_dirty__ = []
-        entity.__odata_nav_cache__ = {}
+        saved_data = self.connection.execute_patch(url, patch_data)
+        es.reset()
 
         if saved_data is None:
             self.log.info(u'Reloading entity from service')
-            saved_data = self.connection.execute_get(instance_url)
+            saved_data = self.connection.execute_get(url)
 
         if saved_data is not None:
             entity.__odata__.update(saved_data)

@@ -7,7 +7,7 @@ except ImportError:
     # noinspection PyUnresolvedReferences
     from urlparse import urljoin
 
-from .property import PropertyBase, Relationship
+from odata.state import EntityState
 
 
 class EntityBase(object):
@@ -18,74 +18,41 @@ class EntityBase(object):
 
     @classmethod
     def __odata_url__(cls):
+        # used by Query
         return urljoin(cls.__odata_url_base__, cls.__odata_collection__)
-
-    @classmethod
-    def __odata_single_url__(cls):
-        return cls.__odata_url__() + u'({pk})'
-
-    def __odata_id__(self):
-        prop_name, prop = self.__odata_pk_property__()
-        value = getattr(self, prop_name, None)
-        if value:
-            return u'{0}({1})'.format(self.__odata_collection__, prop.escape_value(value))
-
-    @classmethod
-    def __odata_properties__(cls):
-        props = []
-        for prop_name in cls.__dict__:
-            prop = cls.__dict__.get(prop_name)
-            if isinstance(prop, PropertyBase):
-                props.append((prop_name, prop))
-        return props
-
-    @classmethod
-    def __odata_nav_properties__(cls):
-        props = []
-        for prop_name in cls.__dict__:
-            prop = cls.__dict__.get(prop_name)
-            if isinstance(prop, Relationship):
-                props.append((prop_name, prop))
-        return props
-
-    @classmethod
-    def __odata_pk_property__(cls):
-        for prop_name, prop in cls.__odata_properties__():
-            if prop.primary_key is True:
-                return prop_name, prop
-
-    def __odata_instance_url__(self):
-        prop_name, prop = self.__odata_pk_property__()
-        pk_value = getattr(self, prop_name, None)
-        if pk_value is not None:
-            pk_value = prop.escape_value(pk_value)
-            return self.__odata_single_url__().format(pk=pk_value)
 
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)
-        i.__odata__ = {
-            '@odata.type': cls.__odata_type__,
-        }
-        i.__odata_dirty__ = []
-        i.__odata_nav_cache__ = {}
+        i.__odata__ = es = EntityState(i)
 
         if 'from_data' in kwargs:
             raw_data = kwargs.pop('from_data')
-            for prop_name, prop in cls.__odata_properties__():
+
+            # check for values from $expand
+            for prop_name, prop in es.navigation_properties:
+                if prop.name in raw_data:
+                    expanded_data = raw_data.pop(prop.name)
+                    if prop.is_collection:
+                        es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(expanded_data))
+                    else:
+                        es.nav_cache[prop.name] = dict(single=prop.instances_from_data(expanded_data))
+
+            for prop_name, prop in es.properties:
                 i.__odata__[prop.name] = raw_data.get(prop.name)
         else:
-            for prop_name, prop in cls.__odata_properties__():
+            for prop_name, prop in es.properties:
                 i.__odata__[prop.name] = None
 
         return i
 
     def __repr__(self):
-        v = self.__odata_pk_property__()
-        if v is not None:
-            pk_prop = v[1]
-            pk = self.__odata__[pk_prop.name]
-            return '<Entity({0}:{1})>'.format(self.__class__.__name__, pk)
-        return '<Entity({0})>'.format(self.__class__.__name__)
+        clsname = self.__class__.__name__
+        prop_name, prop = self.__odata__.primary_key_property
+        if prop:
+            value = self.__odata__[prop.name]
+            if value:
+                return '<Entity({0}:{1})>'.format(clsname, prop.escape_value(value))
+        return '<Entity({0})>'.format(clsname)
 
 
 def declarative_base():

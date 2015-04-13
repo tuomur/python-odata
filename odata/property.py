@@ -32,8 +32,10 @@ class PropertyBase(object):
         if instance is None:
             return self
 
-        if self.name in instance.__odata__:
-            raw_data = instance.__odata__[self.name]
+        es = instance.__odata__
+
+        if self.name in es:
+            raw_data = es[self.name]
             return self._return_data(raw_data)
         else:
             raise AttributeError()
@@ -42,13 +44,15 @@ class PropertyBase(object):
         """
         :type instance: odata.entity.EntityBase
         """
-        if self.name in instance.__odata__:
+
+        es = instance.__odata__
+
+        if self.name in es:
             new_value = self._set_data(value)
-            old_value = instance.__odata__[self.name]
+            old_value = es[self.name]
             if new_value != old_value:
-                instance.__odata__[self.name] = new_value
-                if self.name not in instance.__odata_dirty__:
-                    instance.__odata_dirty__.append(self.name)
+                es[self.name] = new_value
+                es.set_property_dirty(self)
 
     def _set_data(self, value):
         """ Called when serializing the value to JSON """
@@ -167,7 +171,8 @@ class Relationship(object):
             return self.entitycls.__new__(self.entitycls, from_data=raw_data)
 
     def _get_parent_cache(self, instance):
-        ic = instance.__odata_nav_cache__
+        es = instance.__odata__
+        ic = es.nav_cache
         if self.name not in ic:
             cache = {}
             ic[self.name] = cache
@@ -176,19 +181,25 @@ class Relationship(object):
         return cache
 
     def __set__(self, instance, value):
+        """
+        :type instance: odata.entity.EntityBase
+        """
         cache = self._get_parent_cache(instance)
         if self.is_collection:
             cache['collection'] = value
         else:
             cache['single'] = value
-        if self.name not in instance.__odata_dirty__:
-            instance.__odata_dirty__.append(self.name)
+        instance.__odata__.set_property_dirty(self)
 
     def __get__(self, instance, owner):
+        """
+        :type instance: odata.entity.EntityBase
+        """
         if instance is None:
             return self
 
-        parent_url = instance.__odata_instance_url__()
+        es = instance.__odata__
+        parent_url = es.instance_url
         new_object = parent_url is None
         cache = self._get_parent_cache(instance)
 
