@@ -11,6 +11,10 @@ requires = (
     'lxml',
 )
 
+tests_require = (
+    'responses',
+)
+
 setup(
     name='odata',
     version=version,
@@ -19,5 +23,6 @@ setup(
     author='Tuomas Mursu',
     author_email='tuomas.mursu@kapsi.fi',
     install_requires=requires,
+    tests_require=tests_require,
     packages=find_packages(),
 )

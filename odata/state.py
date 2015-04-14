@@ -74,7 +74,7 @@ class EntityState(object):
     @property
     def id(self):
         prop_name, prop = self.primary_key_property
-        value = self.data.get(prop_name)
+        value = self.data.get(prop.name)
         if value:
             return u'{0}({1})'.format(self.entity.__odata_collection__, prop.escape_value(value))
 
