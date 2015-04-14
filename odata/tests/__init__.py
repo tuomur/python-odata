@@ -25,14 +25,10 @@ class ProductPart(Base):
     product_id = IntegerProperty('ProductID')
 
 
-class ProductWithNavigation(Base):
+class ProductWithNavigation(Product):
     __odata_type__ = 'ODataTest.Objects.ProductWithNavigation'
     __odata_collection__ = 'ProductsWithNavigation'
-    id = IntegerProperty('ProductID', primary_key=True)
-    name = StringProperty('ProductName')
-    category = StringProperty('Category')
-    price = DecimalProperty('Price')
 
+    parts = NavigationProperty('Parts', ProductPart, collection=True)
 
 ProductPart.product = NavigationProperty('Product', ProductWithNavigation, foreign_key='ProductID')
-ProductWithNavigation.parts = NavigationProperty('Parts', ProductPart, collection=True)

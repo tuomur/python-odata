@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import os
+import inspect
 
 from odata.property import PropertyBase, NavigationProperty
 
@@ -87,10 +88,9 @@ class EntityState(object):
     def properties(self):
         props = []
         cls = self.entity.__class__
-        for prop_name in cls.__dict__:
-            prop = cls.__dict__.get(prop_name)
-            if isinstance(prop, PropertyBase):
-                props.append((prop_name, prop))
+        for key, value in inspect.getmembers(cls):
+            if isinstance(value, PropertyBase):
+                props.append((key, value))
         return props
 
     @property
@@ -103,10 +103,9 @@ class EntityState(object):
     def navigation_properties(self):
         props = []
         cls = self.entity.__class__
-        for prop_name in cls.__dict__:
-            prop = cls.__dict__.get(prop_name)
-            if isinstance(prop, NavigationProperty):
-                props.append((prop_name, prop))
+        for key, value in inspect.getmembers(cls):
+            if isinstance(value, NavigationProperty):
+                props.append((key, value))
         return props
 
     @property
