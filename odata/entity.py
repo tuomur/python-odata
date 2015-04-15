@@ -54,6 +54,13 @@ class EntityBase(object):
                 return '<Entity({0}:{1})>'.format(clsname, prop.escape_value(value))
         return '<Entity({0})>'.format(clsname)
 
+    def __eq__(self, other):
+        if isinstance(other, EntityBase):
+            my_id = self.__odata__.id
+            if my_id:
+                return my_id == other.__odata__.id
+        return False
+
 
 def declarative_base():
     class Entity(EntityBase):
