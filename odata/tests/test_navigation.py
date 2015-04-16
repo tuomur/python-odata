@@ -173,18 +173,6 @@ class TestNavigationObjects(unittest.TestCase):
         #######################################################################
 
         # Reload data #########################################################
-        def request_callback_reload(request):
-            payload = {
-                'ProductID': 51,
-                'ProductName': 'Foo',
-                'Category': 'Bar',
-                'Price': 12.3,
-            }
-
-            resp_body = payload
-            headers = {}
-            return requests.codes.ok, headers, json.dumps(resp_body)
-
         responses.add_callback(
             responses.GET, product.__odata__.instance_url,
             callback=request_callback,
