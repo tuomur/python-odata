@@ -97,8 +97,8 @@ class Query(object):
         oldvalue = self.limit
         self.limit = 1
         data = [row for row in self.__iter__()]
+        self.limit = oldvalue
         if data:
-            self.limit = oldvalue
             return data[0]
 
     @staticmethod

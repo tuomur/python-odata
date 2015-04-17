@@ -14,10 +14,14 @@ class NavigationProperty(object):
     not inherit from PropertyBase.
     """
     def __init__(self, name, entitycls, collection=False, foreign_key=None):
+        from odata.property import PropertyBase
         self.name = name
         self.entitycls = entitycls
         self.is_collection = collection
-        self.foreign_key = foreign_key
+        if isinstance(foreign_key, PropertyBase):
+            self.foreign_key = foreign_key.name
+        else:
+            self.foreign_key = foreign_key
 
     def __repr__(self):
         return u'<NavigationProperty to {0}>'.format(self.entitycls)

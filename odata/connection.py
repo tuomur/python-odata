@@ -55,11 +55,6 @@ class ODataConnection(object):
         return self.session.post(*args, **kwargs)
 
     @catch_requests_errors
-    def _do_put(self, *args, **kwargs):
-        self._apply_options(kwargs)
-        return self.session.put(*args, **kwargs)
-
-    @catch_requests_errors
     def _do_patch(self, *args, **kwargs):
         self._apply_options(kwargs)
         return self.session.patch(*args, **kwargs)
@@ -132,18 +127,6 @@ class ODataConnection(object):
         if response.status_code == requests.codes.created:
             data = response.json()
             self.log.debug(u'Received: {0}'.format(data))
-            return data
-
-    def execute_put(self, url, data):
-        headers = {
-            'Content-Type': 'application/json',
-        }
-        headers.update(self.base_headers)
-
-        response = self._do_put(url, data=json.dumps(data), headers=headers)
-        self._handle_odata_error(response)
-        if response.status_code == requests.codes.created:
-            data = response.json()
             return data
 
     def execute_patch(self, url, data):

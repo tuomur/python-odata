@@ -6,13 +6,62 @@ import json
 import responses
 import requests
 
-from odata.tests import Service, ProductWithNavigation, ProductPart
+from odata.tests import Service, ProductWithNavigation, ProductPart, Manufacturer
 
 
 class TestNavigationObjects(unittest.TestCase):
 
     @responses.activate
-    def test_read_navigation_property(self):
+    def test_read_single_navigation_property(self):
+        # Initial data ########################################################
+        def request_callback(request):
+            payload = {
+                'ProductID': 51,
+                'ProductName': 'Foo',
+                'Category': 'Bar',
+                'Price': 12.3,
+            }
+
+            resp_body = {'value': [payload]}
+            headers = {}
+            return requests.codes.ok, headers, json.dumps(resp_body)
+
+        responses.add_callback(
+            responses.GET, ProductWithNavigation.__odata_url__(),
+            callback=request_callback,
+            content_type='application/json',
+        )
+        #######################################################################
+
+        product = Service.query(ProductWithNavigation).first()
+
+        # Get parts ###########################################################
+        parts_url = product.__odata__.instance_url + '/Manufacturer'
+
+        def request_callback_manufacturer(request):
+            payload = {
+                'ManufacturerID': 33,
+                'Name': 'Best Parts Ltd.',
+                'DateEstablished': '2007-06-05T12:00:00Z',
+            }
+
+            resp_body = payload
+            headers = {}
+            return requests.codes.ok, headers, json.dumps(resp_body)
+
+        responses.add_callback(
+            responses.GET, parts_url,
+            callback=request_callback_manufacturer,
+            content_type='application/json',
+        )
+        #######################################################################
+
+        mf = product.manufacturer
+        assert isinstance(mf, Manufacturer)
+
+
+    @responses.activate
+    def test_read_collection_navigation_property(self):
         # Initial data ########################################################
         def request_callback(request):
             payload = {
