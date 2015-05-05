@@ -38,34 +38,29 @@ class EntityState(object):
 
     def describe(self):
         rows = [
-            (u'Entity', ''),
-            (u' - ' + self.entity.__odata_collection__, ''),
-            (u'URL', ''),
+            u'EntitySet: {0}'.format(self.entity.__odata_collection__),
+            u'URL: {0}'.format(self.instance_url or self.entity.__odata_url__()),
+            u'',
+            u'Properties',
+            u'-' * 40,
         ]
 
-        if self.instance_url:
-            rows.append((u' - ' + self.instance_url, ''))
-        else:
-            rows.append((u' - ' + self.entity.__odata_url__(), '')),
-
-        rows.append(('', ''))
-        rows.append(('Properties', ''))
-        rows.append(('-' * 40, ''))
-
-        _, prop = self.primary_key_property
-        rows.append((u'{0}*'.format(prop.name), ''))
-
         for _, prop in self.properties:
-            rows.append((prop.name, ''))
+            name = prop.name
+            if prop.primary_key:
+                name += '*'
+            if prop.name in self.dirty:
+                name += ' (dirty)'
+            rows.append(name)
 
-        rows.append(('', ''))
-        rows.append(('Navigation Properties', ''))
-        rows.append(('-' * 40, ''))
+        rows.append(u'')
+        rows.append(u'Navigation Properties')
+        rows.append(u'-' * 40)
 
         for _, prop in self.navigation_properties:
-            rows.append((prop.name, ''))
+            rows.append(prop.name)
 
-        rows = os.linesep.join([first.ljust(40) + second.ljust(30) for first, second in rows])
+        rows = os.linesep.join(rows)
         print(rows)
 
     def reset(self):

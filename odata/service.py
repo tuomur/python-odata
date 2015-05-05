@@ -35,6 +35,9 @@ class ODataService(object):
     def __repr__(self):
         return '<ODataService at {0}>'.format(self.url)
 
+    def describe(self, entity):
+        entity.__odata__.describe()
+
     def query(self, entitycls):
         return Query(entitycls)
 

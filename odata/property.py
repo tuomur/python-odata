@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from decimal import Decimal
+import datetime
 
 import dateutil.parser
 
@@ -140,10 +141,12 @@ class DecimalProperty(PropertyBase):
 class DatetimeProperty(PropertyBase):
 
     def _set_data(self, value):
-        r = value.isoformat()
-        if value.tzinfo is None:
-            r += 'Z'
-        return r
+        if isinstance(value, datetime.datetime):
+            r = value.isoformat()
+            if value.tzinfo is None:
+                r += 'Z'
+            return r
 
     def _return_data(self, value):
-        return dateutil.parser.parse(value)
+        if value:
+            return dateutil.parser.parse(value)
