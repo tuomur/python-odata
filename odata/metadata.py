@@ -37,35 +37,54 @@ class MetaData(object):
         schemas, entity_sets = self.parse_document(document)
 
         entities = {}
-        Base = base or declarative_base()
+        base_class = base or declarative_base()
 
-        for entity_set in entity_sets:
+        subclasses = []
+
+        for schema in schemas:
+            for entity_type in schema.get('entities', []):
+                if entity_type.get('base_type'):
+                    subclasses.append({
+                        'name': entity_type['name'],
+                        'schema': entity_type,
+                    })
+
+        for entity_set in entity_sets + subclasses:
             schema = entity_set['schema']
-            if schema:
-                collection_name = entity_set['name']
-                entity_name = schema['name']
+            collection_name = entity_set['name']
 
-                class Entity(Base):
+            entity_name = schema['name']
+
+            if schema.get('base_type'):
+                base_type = schema.get('base_type')
+                for entity in entities.values():
+                    if entity.__odata_type__ == base_type:
+                        class Entity(entity):
+                            __odata_schema__ = schema
+                            __odata_type__ = schema['type']
+                        Entity.__name__ = schema['name']
+            else:
+                class Entity(base_class):
                     __odata_schema__ = schema
                     __odata_type__ = schema['type']
                     __odata_collection__ = collection_name
 
                 Entity.__name__ = entity_name
 
-                for prop in schema.get('properties'):
-                    prop_name = prop['name']
+            for prop in schema.get('properties'):
+                prop_name = prop['name']
 
-                    if hasattr(Entity, prop_name):
-                        # do not replace existing properties (from Base)
-                        continue
+                if hasattr(Entity, prop_name):
+                    # do not replace existing properties (from Base)
+                    continue
 
-                    type_ = self.property_type_to_python(prop['type'])
-                    type_options = {
-                        'primary_key': prop['is_primary_key']
-                    }
-                    setattr(Entity, prop_name, type_(prop_name, **type_options))
+                type_ = self.property_type_to_python(prop['type'])
+                type_options = {
+                    'primary_key': prop['is_primary_key']
+                }
+                setattr(Entity, prop_name, type_(prop_name, **type_options))
 
-                entities[entity_name] = Entity
+            entities[entity_name] = Entity
 
         # Set up relationships
         for entity in entities.values():
@@ -85,14 +104,15 @@ class MetaData(object):
 
                 for _search_entity in entities.values():
                     if _search_entity.__odata_schema__['type'] == search_type:
-                        nav = NavigationProperty(name,
+                        nav = NavigationProperty(
+                            name,
                             _search_entity,
                             collection=is_collection,
                             foreign_key=foreign_key,
-                            )
+                        )
                         setattr(entity, name, nav)
 
-        return Base, entities
+        return base_class, entities
 
     def load_document(self):
         response = self.connection._do_get(self.url)
@@ -124,6 +144,11 @@ class MetaData(object):
                     'properties': [],
                     'navigation_properties': [],
                 }
+
+                base_type = xmlq(entity_type, '@BaseType')
+                if base_type:
+                    base_type = base_type[0]
+                    entity['base_type'] = base_type
 
                 entity_pk_name = None
                 pk_property = xmlq(entity_type, 'edm:Key/edm:PropertyRef')
@@ -171,8 +196,8 @@ class MetaData(object):
                     'schema': None,
                 }
 
-                for schema in schemas:
-                    for entity in schema.get('entities', []):
+                for schema_ in schemas:
+                    for entity in schema_.get('entities', []):
                         if entity.get('type') == set_type:
                             set_dict['schema'] = entity
 

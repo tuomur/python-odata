@@ -39,6 +39,7 @@ class EntityState(object):
     def describe(self):
         rows = [
             u'EntitySet: {0}'.format(self.entity.__odata_collection__),
+            u'Type: {0}'.format(self.entity.__odata_type__),
             u'URL: {0}'.format(self.instance_url or self.entity.__odata_url__()),
             u'',
             u'Properties',
@@ -155,11 +156,19 @@ class EntityState(object):
                 insert_data.pop(prop.foreign_key, None)
 
             value = getattr(entity, prop_name, None)
+            """:type : odata.entity.EntityBase"""
             if value is not None:
 
-                if prop.is_collection:
-                    insert_data[prop.name] = [self._clean_new_entity(i) for i in value]
+                if value.__odata__.id is None:
+                    if prop.is_collection:
+                        insert_data[prop.name] = [self._clean_new_entity(i) for i in value]
+                    else:
+                        insert_data[prop.name] = self._clean_new_entity(value)
                 else:
-                    insert_data[prop.name] = self._clean_new_entity(value)
+                    key = '{0}@odata.bind'.format(prop.name)
+                    if prop.is_collection:
+                        insert_data[key] = [i.__odata__.id for i in value]
+                    else:
+                        insert_data[key] = value.__odata__.id
 
         return insert_data
