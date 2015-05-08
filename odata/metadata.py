@@ -159,7 +159,7 @@ class MetaData(object):
 
                 base_type = entity_type.attrib.get('BaseType')
                 if base_type:
-                    base_type = base_type[0]
+                    base_type = base_type
                     entity['base_type'] = base_type
 
                 entity_pk_name = None
