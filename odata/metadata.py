@@ -1,6 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from lxml import etree
+import sys
+has_lxml = False
+try:
+    from lxml import etree as ET
+    has_lxml = True
+except ImportError:
+    if sys.version_info < (2, 7):
+        raise ImportError('lxml required for Python versions older than 2.7')
+    from xml.etree import ElementTree as ET
 
 from .entity import declarative_base
 from .property import StringProperty, IntegerProperty, DecimalProperty, \
@@ -116,17 +124,21 @@ class MetaData(object):
 
     def load_document(self):
         response = self.connection._do_get(self.url)
-        return etree.fromstring(response.content)
+        return ET.fromstring(response.content)
 
     def parse_document(self, doc):
         schemas = []
         container_sets = []
 
-        def xmlq(node, xpath):
-            return node.xpath(xpath, namespaces=self.namespaces)
+        if has_lxml:
+            def xmlq(node, xpath):
+                return node.xpath(xpath, namespaces=self.namespaces)
+        else:
+            def xmlq(node, xpath):
+                return node.findall(xpath, namespaces=self.namespaces)
 
         for schema in xmlq(doc, 'edmx:DataServices/edm:Schema'):
-            schema_name = xmlq(schema, '@Namespace')[0]
+            schema_name = schema.attrib['Namespace']
 
             schema_dict = {
                 'name': schema_name,
@@ -134,7 +146,7 @@ class MetaData(object):
             }
 
             for entity_type in xmlq(schema, 'edm:EntityType'):
-                entity_name = xmlq(entity_type, '@Name')[0]
+                entity_name = entity_type.attrib['Name']
 
                 entity_type_name = '.'.join([schema_name, entity_name])
 
@@ -145,7 +157,7 @@ class MetaData(object):
                     'navigation_properties': [],
                 }
 
-                base_type = xmlq(entity_type, '@BaseType')
+                base_type = entity_type.attrib.get('BaseType')
                 if base_type:
                     base_type = base_type[0]
                     entity['base_type'] = base_type
@@ -153,11 +165,11 @@ class MetaData(object):
                 entity_pk_name = None
                 pk_property = xmlq(entity_type, 'edm:Key/edm:PropertyRef')
                 if pk_property:
-                    entity_pk_name = xmlq(pk_property[0], '@Name')[0]
+                    entity_pk_name = pk_property[0].attrib['Name']
 
                 for entity_property in xmlq(entity_type, 'edm:Property'):
-                    p_name = xmlq(entity_property, '@Name')[0]
-                    p_type = xmlq(entity_property, '@Type')[0]
+                    p_name = entity_property.attrib['Name']
+                    p_type = entity_property.attrib['Type']
 
                     entity['properties'].append({
                         'name': p_name,
@@ -166,14 +178,14 @@ class MetaData(object):
                     })
 
                 for nav_property in xmlq(entity_type, 'edm:NavigationProperty'):
-                    p_name = xmlq(nav_property, '@Name')[0]
-                    p_type = xmlq(nav_property, '@Type')[0]
+                    p_name = nav_property.attrib['Name']
+                    p_type = nav_property.attrib['Type']
                     p_foreign_key = None
 
                     ref_constraint = xmlq(nav_property, 'edm:ReferentialConstraint')
                     if ref_constraint:
                         ref_constraint = ref_constraint[0]
-                        p_foreign_key = xmlq(ref_constraint, '@Property')[0]
+                        p_foreign_key = ref_constraint.attrib['Property']
 
                     entity['navigation_properties'].append({
                         'name': p_name,
@@ -187,8 +199,8 @@ class MetaData(object):
 
         for schema in xmlq(doc, 'edmx:DataServices/edm:Schema'):
             for entity_set in xmlq(schema, 'edm:EntityContainer/edm:EntitySet'):
-                set_name = xmlq(entity_set, '@Name')[0]
-                set_type = xmlq(entity_set, '@EntityType')[0]
+                set_name = entity_set.attrib['Name']
+                set_type = entity_set.attrib['EntityType']
 
                 set_dict = {
                     'name': set_name,
