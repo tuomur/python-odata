@@ -3,6 +3,7 @@
 from __future__ import print_function
 import os
 import inspect
+from collections import OrderedDict
 
 from odata.property import PropertyBase, NavigationProperty
 
@@ -120,9 +121,8 @@ class EntityState(object):
         return self._clean_new_entity(self.entity)
 
     def data_for_update(self):
-        update_data = {
-            '@odata.type': self.entity.__odata_type__
-        }
+        update_data = OrderedDict()
+        update_data['@odata.type'] = self.entity.__odata_type__
 
         for _, prop in self.dirty_properties:
             update_data[prop.name] = self.data[prop.name]
@@ -130,6 +130,7 @@ class EntityState(object):
         for prop_name, prop in self.navigation_properties:
             if prop.name in self.dirty:
                 value = getattr(self.entity, prop_name, None)  # get the related object
+                """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
                 if value is not None:
                     key = '{0}@odata.bind'.format(prop.name)
                     if prop.is_collection:
@@ -140,9 +141,9 @@ class EntityState(object):
 
     def _clean_new_entity(self, entity):
         """:type entity: odata.entity.EntityBase """
-        insert_data = {
-            '@odata.type': entity.__odata_type__,
-        }
+        insert_data = OrderedDict()
+        insert_data['@odata.type'] = entity.__odata_type__
+
         es = entity.__odata__
         for _, prop in es.properties:
             insert_data[prop.name] = es[prop.name]
@@ -156,19 +157,30 @@ class EntityState(object):
                 insert_data.pop(prop.foreign_key, None)
 
             value = getattr(entity, prop_name, None)
-            """:type : odata.entity.EntityBase"""
+            """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
             if value is not None:
 
-                if value.__odata__.id is None:
-                    if prop.is_collection:
-                        insert_data[prop.name] = [self._clean_new_entity(i) for i in value]
+                if prop.is_collection:
+                    binds = []
+
+                    # binds must be added first
+                    for i in [i for i in value if i.__odata__.id]:
+                        binds.append(i.__odata__.id)
+
+                    if len(binds):
+                        insert_data['{0}@odata.bind'.format(prop.name)] = binds
+
+                    new_entities = []
+                    for i in [i for i in value if i.__odata__.id is None]:
+                        new_entities.append(self._clean_new_entity(i))
+
+                    if len(new_entities):
+                        insert_data[prop.name] = new_entities
+
+                else:
+                    if value.__odata__.id:
+                        insert_data['{0}@odata.bind'.format(prop.name)] = value.__odata__.id
                     else:
                         insert_data[prop.name] = self._clean_new_entity(value)
-                else:
-                    key = '{0}@odata.bind'.format(prop.name)
-                    if prop.is_collection:
-                        insert_data[key] = [i.__odata__.id for i in value]
-                    else:
-                        insert_data[key] = value.__odata__.id
 
         return insert_data

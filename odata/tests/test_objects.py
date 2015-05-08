@@ -7,7 +7,7 @@ from decimal import Decimal
 import responses
 import requests
 
-from odata.tests import Service, Product
+from odata.tests import Service, Product, ProductWithNavigation, ProductPart
 
 
 class TestSimpleObjectManipulation(unittest.TestCase):
@@ -44,6 +44,79 @@ class TestSimpleObjectManipulation(unittest.TestCase):
         Service.save(new_product)
 
         assert new_product.id is not None, 'Product.id is not set'
+
+    @responses.activate
+    def test_create_deep_inserts(self):
+        # Initial part data ###################################################
+        def request_callback_part(request):
+
+            payload = {
+                'PartID': 35,
+                'PartName': 'Testing',
+                'Size': 55,
+            }
+
+            resp_body = {'value': [payload]}
+            headers = {}
+            return requests.codes.created, headers, json.dumps(resp_body)
+
+        responses.add_callback(
+            responses.GET, ProductPart.__odata_url__(),
+            callback=request_callback_part,
+            content_type='application/json',
+        )
+        #######################################################################
+
+        queried_part = Service.query(ProductPart).first()
+
+        # Post call ###########################################################
+        def request_callback(request):
+            payload = json.loads(request.body)
+
+            assert 'OData-Version' in request.headers, 'OData-Version header not in request'
+
+            assert 'ProductID' not in payload, 'Payload contains primary key'
+            assert '@odata.type' in payload, 'Payload did not contain @odata.type'
+
+            assert 'Parts@odata.bind' in payload, 'Parts bind not in payload'
+            assert payload['Parts@odata.bind'] == ['ProductParts(35)']
+
+            assert 'Parts' in payload, 'Parts not in payload'
+            parts = payload['Parts']
+            assert isinstance(parts, list), 'Parts is not a list'
+            part = parts[0]
+            assert len(part) == 3, 'Extra keys in deep inserted part: {0}'.format(part)
+            assert '@odata.type' in part
+            assert part['PartName'] == 'Foo'
+            assert part['Size'] == 12.5
+
+            payload['ProductID'] = 1
+
+            resp_body = payload
+            headers = {}
+            return requests.codes.created, headers, json.dumps(resp_body)
+
+        responses.add_callback(
+            responses.POST, ProductWithNavigation.__odata_url__(),
+            callback=request_callback,
+            content_type='application/json',
+        )
+        #######################################################################
+
+        part = ProductPart()
+        part.name = 'Foo'
+        part.size = 12.5
+
+        new_product = ProductWithNavigation()
+        new_product.name = u'New Test Product'
+        new_product.category = u'Category #1'
+        new_product.price = 34.5
+        new_product.parts = [part, queried_part]
+
+        Service.save(new_product)
+
+        assert new_product.id is not None, 'Product.id is not set'
+
 
     @responses.activate
     def test_read(self):
