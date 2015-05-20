@@ -7,11 +7,14 @@ except ImportError:
     # noinspection PyUnresolvedReferences
     from urlparse import urljoin
 
+import odata.exceptions as exc
+
 
 class Query(object):
 
     def __init__(self, entitycls):
         self.entity = entitycls
+        """:type : odata.entity.EntityBase"""
         self.connection = entitycls.__odata_connection__
         self.url = entitycls.__odata_url__()
         self.model = None
@@ -91,14 +94,40 @@ class Query(object):
         self._order_by.extend(values)
 
     def all(self):
-        return [row for row in self.__iter__()]
+        return list(iter(self))
 
     def first(self):
         oldvalue = self.limit
         self.limit = 1
-        data = [row for row in self.__iter__()]
+        data = list(iter(self))
         self.limit = oldvalue
         if data:
+            return data[0]
+
+    def one(self):
+        oldlimit = self.limit
+
+        self.limit = 2
+        data = self.all()
+
+        self.limit = oldlimit
+        if len(data) == 0:
+            raise exc.NoResultsFound()
+        if len(data) > 1:
+            raise exc.MultipleResultsFound()
+        return data[0]
+
+    def get(self, pk):
+        i = self.entity.__new__(self.entity)
+        es = i.__odata__
+        _, prop = es.primary_key_property
+        oldfilters = self._filters
+
+        self._filters = [prop == pk]
+        data = list(iter(self))
+
+        self._filters = oldfilters
+        if len(data) > 0:
             return data[0]
 
     @staticmethod

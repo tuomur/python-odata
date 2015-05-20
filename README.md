@@ -9,7 +9,7 @@ A simple library for read/write access to OData services.
 ## Dependencies
 
 - requests >= 2.0
-- lxml
+- dateutil
 
 ## Demo
 

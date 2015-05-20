@@ -7,3 +7,15 @@ class ODataError(Exception):
 
 class ODataConnectionError(ODataError):
     pass
+
+
+class ODataQueryError(ODataError):
+    pass
+
+
+class NoResultsFound(ODataQueryError):
+    pass
+
+
+class MultipleResultsFound(ODataQueryError):
+    pass
