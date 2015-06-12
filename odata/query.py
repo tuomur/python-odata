@@ -23,8 +23,8 @@ class Query(object):
         self._filters = []
         self._expand = []
         self._order_by = []
-        self.limit = 1000
-        self.offset = 0
+        self.limit = None
+        self.offset = None
 
     def __iter__(self):
         while True:
@@ -57,10 +57,13 @@ class Query(object):
         return '&'.join(['='.join((key, str(value))) for key, value in options.items() if value is not None])
 
     def _get_options(self):
-        options = {
-            '$top': self.limit,
-            '$skip': self.offset,
-        }
+        options = dict()
+
+        if self.limit is not None:
+            options['$top'] = self.limit
+
+        if self.offset is not None:
+            options['$skip'] = self.offset
 
         if self._select:
             options['$select'] = ','.join(self._select)
