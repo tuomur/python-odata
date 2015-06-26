@@ -132,10 +132,12 @@ class FloatProperty(PropertyBase):
 class DecimalProperty(PropertyBase):
 
     def _set_data(self, value):
-        return float(value)
+        if value is not None:
+            return float(value)
 
     def _return_data(self, value):
-        return Decimal(str(value))
+        if value is not None:
+            return Decimal(str(value))
 
 
 class DatetimeProperty(PropertyBase):
