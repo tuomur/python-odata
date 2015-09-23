@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 
 from odata import ODataService
-from odata.entity import declarative_base
 from odata.property import StringProperty, IntegerProperty, DecimalProperty, \
     NavigationProperty, DatetimeProperty
 
-Base = declarative_base()
 url = 'http://unittest.server.local/odata/'
-Service = ODataService(url, base=Base)
+Service = ODataService(url)
 
 
-class Product(Base):
+class Product(Service.Base):
     id = IntegerProperty('ProductID', primary_key=True)
     name = StringProperty('ProductName')
     category = StringProperty('Category')
     price = DecimalProperty('Price')
 
 
-class ProductPart(Base):
+class ProductPart(Service.Base):
     __odata_type__ = 'ODataTest.Objects.ProductPart'
     __odata_collection__ = 'ProductParts'
     id = IntegerProperty('PartID', primary_key=True)
@@ -26,7 +24,7 @@ class ProductPart(Base):
     product_id = IntegerProperty('ProductID')
 
 
-class Manufacturer(Base):
+class Manufacturer(Service.Base):
     __odata_type__ = 'ODataTest.Objects.Manufacturer'
     __odata_collection__ = 'Manufacturers'
 

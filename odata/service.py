@@ -2,7 +2,7 @@
 
 import logging
 
-from .entity import EntityBase
+from .entity import EntityBase, declarative_base
 from .connection import ODataConnection
 from .metadata import MetaData
 from .query import Query
@@ -16,7 +16,7 @@ __all__ = (
 
 class ODataService(object):
 
-    def __init__(self, url, base=None, metadata=None, reflect_entities=False, session=None, auth=None):
+    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
@@ -24,16 +24,18 @@ class ODataService(object):
         self.log = logging.getLogger('odata.service')
 
         self.entities = {}
-        self.metadata = metadata or MetaData(self)
-        if reflect_entities:
-            base, self.entities = self.metadata.get_entity_sets(base=base)
+        self.metadata = MetaData(self)
 
-        self.base = base
-        base.__odata_url_base__ = url
-        base.__odata_connection__ = self.connection
+        self.Base = base or declarative_base()
+
+        if reflect_entities:
+            _, self.entities = self.metadata.get_entity_sets(base=self.Base)
+
+        self.Base.__odata_url_base__ = url
+        self.Base.__odata_connection__ = self.connection
 
     def __repr__(self):
-        return '<ODataService at {0}>'.format(self.url)
+        return u'<ODataService at {0}>'.format(self.url)
 
     def describe(self, entity):
         entity.__odata__.describe()

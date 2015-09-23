@@ -27,6 +27,7 @@ class Query(object):
         self.offset = None
 
     def __iter__(self):
+        self.offset = 0
         while True:
             data = self.connection.execute_get(self.url, self._get_options())
             if 'value' in data:
