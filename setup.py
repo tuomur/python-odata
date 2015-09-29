@@ -2,9 +2,6 @@
 
 from setuptools import setup, find_packages
 
-from odata import version
-
-
 requires = (
     'requests>=2.0',
     'python-dateutil',
@@ -16,7 +13,7 @@ tests_require = (
 
 setup(
     name='odata',
-    version=version,
+    version='0.1',
     description='A simple library for read/write access to OData services.',
     license='MIT',
     author='Tuomas Mursu',
