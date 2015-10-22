@@ -95,9 +95,9 @@ class ODataConnection(object):
         headers = {}
         headers.update(self.base_headers)
 
-        self.log.debug(u'GET {0}'.format(url))
+        self.log.info(u'GET {0}'.format(url))
         if params:
-            self.log.debug(u'Query: {0}'.format(params))
+            self.log.info(u'Query: {0}'.format(params))
 
         response = self._do_get(url, params=params, headers=headers)
         self._handle_odata_error(response)
@@ -119,14 +119,14 @@ class ODataConnection(object):
 
         data = json.dumps(data)
 
-        self.log.debug(u'POST {0}'.format(url))
-        self.log.debug(u'Payload: {0}'.format(data))
+        self.log.info(u'POST {0}'.format(url))
+        self.log.info(u'Payload: {0}'.format(data))
 
         response = self._do_post(url, data=data, headers=headers)
         self._handle_odata_error(response)
         if response.status_code == requests.codes.created:
             data = response.json()
-            self.log.debug(u'Received: {0}'.format(data))
+            self.log.info(u'Received: {0}'.format(data))
             return data
 
     def execute_patch(self, url, data):
@@ -137,8 +137,8 @@ class ODataConnection(object):
 
         data = json.dumps(data)
 
-        self.log.debug(u'PATCH {0}'.format(url))
-        self.log.debug(u'Payload: {0}'.format(data))
+        self.log.info(u'PATCH {0}'.format(url))
+        self.log.info(u'Payload: {0}'.format(data))
 
         response = self._do_patch(url, data=data, headers=headers)
         self._handle_odata_error(response)
@@ -147,7 +147,7 @@ class ODataConnection(object):
         headers = {}
         headers.update(self.base_headers)
 
-        self.log.debug(u'DELETE {0}'.format(url))
+        self.log.info(u'DELETE {0}'.format(url))
 
         response = self._do_delete(url, headers=headers)
         self._handle_odata_error(response)
