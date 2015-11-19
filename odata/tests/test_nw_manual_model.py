@@ -45,8 +45,8 @@ class NorthwindManualModelReadTest(unittest.TestCase):
 
     def test_query_one(self):
         q = service.query(Customer)
-        q.filter(Customer.contact_title.startswith('Sales'))
-        q.filter(Customer.postal_code == '68306')
+        q = q.filter(Customer.contact_title.startswith('Sales'))
+        q = q.filter(Customer.postal_code == '68306')
         data = q.first()
         assert data is not None, 'data is None'
         assert isinstance(data, Customer), 'Did not return Customer instance'
@@ -54,22 +54,22 @@ class NorthwindManualModelReadTest(unittest.TestCase):
 
     def test_query_all(self):
         q = service.query(Customer)
-        q.filter(Customer.city != 'Berlin')
-        q.limit = 30
-        q.order_by(Customer.city.asc())
+        q = q.filter(Customer.city != 'Berlin')
+        q = q.limit(30)
+        q = q.order_by(Customer.city.asc())
         data = q.all()
         assert data is not None, 'data is None'
         assert len(data) > 20, 'data length wrong'
 
     def test_iterating_query_result(self):
         q = service.query(Customer)
-        q.limit = 20
+        q = q.limit(20)
         for result in q:
             assert isinstance(result, Customer), 'Did not return Customer instance'
 
     def test_query_raw_data(self):
         q = service.query(Customer)
-        q.select(Customer.name)
+        q = q.select(Customer.name)
         data = q.first()
         assert isinstance(data, dict), 'Did not return dict'
         assert Customer.name.name in data
@@ -77,7 +77,7 @@ class NorthwindManualModelReadTest(unittest.TestCase):
     def test_query_filters(self):
         q = service.query(Product)
 
-        q.filter(
+        q = q.filter(
             q.or_(
                 q.grouped(
                     q.or_(
