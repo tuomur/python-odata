@@ -29,7 +29,7 @@ class Query(object):
                     yield self._create_model(row)
 
                 if '@odata.nextLink' in data:
-                    url = self.entity.__odata_url_base__ + data['@odata.nextLink']
+                    url = urljoin(self.entity.__odata_url_base__, data['@odata.nextLink'])
                     options = {}  # we get all options in the nextLink url
                 else:
                     break
