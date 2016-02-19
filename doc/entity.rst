@@ -1,0 +1,2 @@
+.. automodule:: odata.entity
+    :members:

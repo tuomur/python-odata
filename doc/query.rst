@@ -1,0 +1,2 @@
+.. automodule:: odata.query
+    :members:

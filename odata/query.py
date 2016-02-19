@@ -1,5 +1,40 @@
 # -*- coding: utf-8 -*-
 
+"""
+Querying
+========
+
+Entities can be queried from a service with a Query object:
+
+.. code-block:: python
+
+    query = Service.query(Order)
+
+Adding filters and other options always creates a new Query object with the
+given directives:
+
+.. code-block:: python
+
+    >>> query.filter(Order.Name == 'Foo')
+    <Query for <Order>>
+
+This makes object chaining possible:
+
+.. code-block:: python
+
+    >>> first_order = query.filter(...).filter(...).order_by(...).first()
+
+The resulting objects can be fetched with :py:func:`~Query.first`,
+:py:func:`~Query.one`, :py:func:`~Query.all`, :py:func:`~Query.get` or
+just iterating the Query object itself. Network is not accessed until one of
+these ways is triggered.
+
+----
+
+API
+---
+"""
+
 try:
     # noinspection PyUnresolvedReferences
     from urllib.parse import urljoin
@@ -11,10 +46,12 @@ import odata.exceptions as exc
 
 
 class Query(object):
-
+    """
+    This class should not be instantiated directly, but from a
+    :py:class:`~odata.service.ODataService` object.
+    """
     def __init__(self, entitycls, options=None):
         self.entity = entitycls
-        """:type : odata.entity.EntityBase"""
         self.options = options or dict()
 
     def __iter__(self):
@@ -96,6 +133,7 @@ class Query(object):
         """
         Create copy of this query without mutable values. All query builders
         should use this first.
+
         :return: Query instance
         """
         o = dict()
@@ -114,6 +152,11 @@ class Query(object):
     # Query builders ###########################################################
 
     def select(self, *values):
+        """
+        Set properties to fetch instead of full Entity objects
+
+        :return: Raw JSON values for given properties
+        """
         q = self._new_query()
         option = q._get_or_create_option('$select')
         for prop in values:
@@ -122,9 +165,10 @@ class Query(object):
 
     def filter(self, value):
         """
-        Set $filter query parameter. Can be called multiple times. Multiple
-        filter() calls are concatenated with 'and'
-        :param value: Property comparison (Entity.Property == 2)
+        Set ``$filter`` query parameter. Can be called multiple times. Multiple
+        :py:func:`filter` calls are concatenated with 'and'
+
+        :param value: Property comparison. For example, ``Entity.Property == 2``
         :return: Query instance
         """
         q = self._new_query()
@@ -134,8 +178,9 @@ class Query(object):
 
     def expand(self, *values):
         """
-        Set $expand query parameter
-        :param values: Entity.Property instance
+        Set ``$expand`` query parameter
+
+        :param values: ``Entity.Property`` instance
         :return: Query instance
         """
         q = self._new_query()
@@ -146,7 +191,8 @@ class Query(object):
 
     def order_by(self, *values):
         """
-        Set $orderby query parameter
+        Set ``$orderby`` query parameter
+
         :param values: One of more of Property.asc() or Property.desc()
         :return: Query instance
         """
@@ -157,7 +203,8 @@ class Query(object):
 
     def limit(self, value):
         """
-        Set $top query parameter
+        Set ``$top`` query parameter
+
         :param value: Number of records to return
         :return: Query instance
         """
@@ -167,7 +214,8 @@ class Query(object):
 
     def offset(self, value):
         """
-        Set $skip query parameter
+        Set ``$skip`` query parameter
+
         :param value: Number of records to skip
         :return: Query instance
         """
@@ -192,6 +240,9 @@ class Query(object):
     def all(self):
         """
         Returns a list of all Entity instances that match the current query
+        options. Iterates through all results with multiple requests fired if
+        necessary, exhausting the query
+
         :return: A list of Entity instances
         """
         return list(iter(self))
@@ -199,6 +250,7 @@ class Query(object):
     def first(self):
         """
         Return the first Entity instance that matches current query
+
         :return: Entity instance or None
         """
         oldvalue = self.options.get('$top', None)
@@ -210,9 +262,11 @@ class Query(object):
 
     def one(self):
         """
-        Return only one resulting Entity. If no results are found, raises
-        NoResultsFound. If multiple are found, raises MultipleResultsFound
+        Return only one resulting Entity
+
         :return: Entity instance
+        :raises NoResultsFound: Zero results returned
+        :raises MultipleResultsFound: Multiple results returned
         """
         oldlimit = self.options.get('$top', None)
 
@@ -228,9 +282,10 @@ class Query(object):
 
     def get(self, pk):
         """
-        Return a Entity with the given primary key.
+        Return a Entity with the given primary key
+
         :param pk: Primary key value
-        :return: Entity instance or None when not found.
+        :return: Entity instance or None
         """
         i = self.entity.__new__(self.entity)
         es = i.__odata__
