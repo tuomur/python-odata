@@ -299,3 +299,34 @@ class Query(object):
         if len(data) > 0:
             return data[0]
         raise exc.NoResultsFound()
+
+    def call(self, fname, **kwargs):
+        """
+        Call a function bound on the entity. Keyword arguments must be tuples
+        of value and property type
+
+        :param fname: Function name to call
+        :param kwargs: Function arguments. Tuples of value and type
+        :return: Entities returned by the call
+        """
+        connection = self._get_connection()
+
+        url = urljoin(self.entity.__odata_url__() + '/', fname)
+
+        kwargs_escaped = []
+        for key, value in kwargs.items():
+            q_value = value[0]
+            q_type = value[1]
+            escaped_value = q_type('temp').escape_value(q_value)
+            kwargs_escaped.append((key, escaped_value))
+
+        params = ['='.join([key, value]) for key, value in kwargs_escaped]
+        params = ','.join(params)
+        url += '({0})'.format(params)
+        data = connection.execute_get(url)
+
+        r = []
+        if data:
+            for row in data.get('value', []):
+                r.append(self._create_model(row))
+        return r

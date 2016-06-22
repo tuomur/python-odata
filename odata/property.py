@@ -284,3 +284,20 @@ class DatetimeProperty(PropertyBase):
     def deserialize(self, value):
         if value:
             return dateutil.parser.parse(value)
+
+
+class UUIDProperty(StringProperty):
+    """
+    Property that stores a UUID (also known as GUID) value. JSON does not
+    support this directly, so the value will be transmitted as a string.
+    Unlike :py:class:`StringProperty`, it does not escape quotes as query
+    filters do not use quotes for UUID
+    """
+    def serialize(self, value):
+        return str(value)
+
+    def deserialize(self, value):
+        return str(value)
+
+    def escape_value(self, value):
+        return str(value)
