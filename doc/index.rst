@@ -28,9 +28,12 @@ Not currently supported:
 - Streams
 - Most of the more intricate querying options
 
+Project source code and issue tracker: `GitHub`_
+
+.. _GitHub: https://github.com/tuomur/python-odata
 
 Code example
--------------
+------------
 
 Connecting to a service and building entity classes from the service's metadata:
 

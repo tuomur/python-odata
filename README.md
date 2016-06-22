@@ -6,6 +6,10 @@ A simple library for read/write access to OData services.
 - Requires JSON format support from the service
 - Should work on both Python 2.x and 3.x
 
+## Documentation
+
+Available on [readthedocs.org](http://tuomur-python-odata.readthedocs.org/en/latest/)
+
 ## Dependencies
 
 - requests >= 2.0
