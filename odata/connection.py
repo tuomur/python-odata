@@ -89,7 +89,12 @@ class ODataConnection(object):
                         detailed_message = ie.get('message') or detailed_message
 
             msg = ' | '.join([status_code, code, message, detailed_message])
-            raise ODataError(msg)
+            err = ODataError(msg)
+            err.status_code = status_code
+            err.code = code
+            err.message = message
+            err.detailed_message = detailed_message
+            raise err
 
     def execute_get(self, url, params=None):
         headers = {}

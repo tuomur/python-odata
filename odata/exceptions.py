@@ -7,13 +7,27 @@ Exceptions
 Error classes used by this library.
 """
 
+
 class ODataError(Exception):
     """
     Base class for python-odata errors. All other errors are subclassed
     from this. Raising any other exception class is a bug and should be
     reported
     """
-    pass
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+        self.status_code = None
+        """HTTP status"""
+
+        self.code = None
+        """Error code supplied by server"""
+
+        self.message = None
+        """Error message supplied by server"""
+
+        self.detailed_message = None
+        """Detailed error message supplied by server"""
 
 
 class ODataConnectionError(ODataError):
