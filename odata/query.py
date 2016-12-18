@@ -29,6 +29,14 @@ The resulting objects can be fetched with :py:func:`~Query.first`,
 just iterating the Query object itself. Network is not accessed until one of
 these ways is triggered.
 
+Navigation properties can be loaded in the same request with 
+:py:func:`~Query.expand`:
+
+.. code-block:: python
+
+    >>> query.expand(Order.Shipper, Order.Customer)
+    >>> order = query.first()
+
 ----
 
 API

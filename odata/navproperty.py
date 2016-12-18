@@ -1,5 +1,34 @@
 # -*- coding: utf-8 -*-
 
+"""
+Navigation properties
+---------------------
+
+The entity can define properties that link to other entities. These are known
+as navigation properties and are supported in this library.
+
+.. code-block:: python
+
+    >>> order = Service.query(Order).first()
+    >>> order.Shipper
+    <Entity(Shipper:3)>
+    >>> order.Shipper.CompanyName
+    'Federal Shipping'
+
+When creating new instances, relationships can be assigned via navigation
+properties:
+
+.. code-block:: python
+
+    # query a shipper instance, just for this example
+    Shipper = Service.entities['Shipper']
+    my_shipper = Service.query(Shipper).first()
+
+    # assign for the new Order
+    order.Shipper = my_shipper
+    Service.save(order)
+"""
+
 try:
     # noinspection PyUnresolvedReferences
     from urllib.parse import urljoin

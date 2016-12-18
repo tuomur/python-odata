@@ -16,6 +16,37 @@ corresponding to each EntitySet provided by the endpoint. This operation
 requires a working network connection to the endpoint. Creating an instance with
 ``reflect_entities=False`` will not cause any network activity.
 
+
+Authentication
+--------------
+
+``auth`` and ``session`` keyword arguments to :py:class:`ODataService` are
+passed as-is to Requests calls, so most of the same `guides`_ can be used.
+
+.. _guides: http://docs.python-requests.org/en/master/user/authentication/
+
+
+HTTP Basic authentication:
+
+.. code-block:: python
+
+    >>> from requests.auth import HTTPBasicAuth
+    >>> my_auth = HTTPBasicAuth('username', 'password')
+    >>> Service = ODataService('url', auth=my_auth)
+
+
+NTLM Auth (for services like Microsoft Dynamics 2016):
+
+.. code-block:: python
+
+    >>> import requests
+    >>> from requests_ntlm import HttpNtlmAuth
+    >>> my_session = requests.Session()
+    >>> my_session.auth = HttpNtlmAuth('domain\\username', 'password')
+    >>> my_session.get('basic url')  # should return 200 OK
+    >>> Service = ODataService('url', session=my_session)
+
+
 ----
 
 API
@@ -62,6 +93,11 @@ class ODataService(object):
         self.metadata = MetaData(self)
 
         self.Base = base or declarative_base()
+        """
+        Entity base class. Either a custom one given in init or a generated one. Can be used to define entities
+
+        :type Base: EntityBase
+        """
 
         if reflect_entities:
             _, self.entities = self.metadata.get_entity_sets(base=self.Base)
