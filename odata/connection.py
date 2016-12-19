@@ -129,10 +129,10 @@ class ODataConnection(object):
 
         response = self._do_post(url, data=data, headers=headers)
         self._handle_odata_error(response)
-        if response.status_code == requests.codes.created:
-            data = response.json()
-            self.log.info(u'Received: {0}'.format(data))
-            return data
+
+        data = response.json()
+        self.log.info(u'Received: {0}'.format(data))
+        return data
 
     def execute_patch(self, url, data):
         headers = {
