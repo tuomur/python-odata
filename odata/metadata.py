@@ -12,7 +12,7 @@ except ImportError:
 
 from .entity import declarative_base
 from .property import StringProperty, IntegerProperty, DecimalProperty, \
-    DatetimeProperty, BooleanProperty, NavigationProperty
+    DatetimeProperty, BooleanProperty, NavigationProperty, UUIDProperty
 
 
 class MetaData(object):
@@ -31,6 +31,7 @@ class MetaData(object):
         'Edm.Decimal': DecimalProperty,
         'Edm.DateTimeOffset': DatetimeProperty,
         'Edm.Boolean': BooleanProperty,
+        'Edm.Guid': UUIDProperty,
     }
 
     def __init__(self, service):
