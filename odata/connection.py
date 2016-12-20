@@ -129,10 +129,12 @@ class ODataConnection(object):
 
         response = self._do_post(url, data=data, headers=headers)
         self._handle_odata_error(response)
-
-        data = response.json()
-        self.log.info(u'Received: {0}'.format(data))
-        return data
+        response_ct = response.headers.get('content-type', '')
+        if response.status_code == requests.codes.no_content:
+            return
+        if 'application/json' in response_ct:
+            return response.json()
+        # no exceptions here, POSTing to Actions may not return data
 
     def execute_patch(self, url, data):
         headers = {
