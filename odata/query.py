@@ -308,6 +308,27 @@ class Query(object):
             return data[0]
         raise exc.NoResultsFound()
 
+    def raw(self, query_params):
+        """
+        Execute a query with custom parameters. Allows queries that
+        :py:class:`Query` does not support otherwise. Results are not converted
+        to Entity objects
+
+        .. code-block:: python
+
+            >>> query = Service.query(MyEntity)
+            >>> query.raw({'$filter': 'EntityId eq 123456'})
+            [{'EntityId': 123456, 'Name': 'Example entity'}]
+
+        :param query_params: A dictionary of query params containing $filter, $orderby, etc.
+        :type query_params: dict
+        :return: Query result
+        """
+        connection = self._get_connection()
+        url = self.entity.__odata_url__()
+        response_data = connection.execute_get(url, params=query_params)
+        return (response_data or {}).get('value')
+
     def call(self, fname, **kwargs):
         """
         Call a function bound on the entity. Keyword arguments must be tuples
