@@ -21,13 +21,37 @@ class Action(object):
         self._entity_cls = None
 
     def __get__(self, instance, owner):
-        self._entity_cls = owner
-        return self
+        # return a callable that acts on EntitySet or the Entity itself
+        url = None
+        if instance:
+            # /MyEntity(1234)/SchemaName.ActionName
+            url = instance.__odata__.instance_url
 
-    def __call__(self, **kwargs):
-        url = self._entity_cls.__odata_url__()
+        # default to /MyEntity/SchemaName.ActionName
+        url = url or owner.__odata_url__()
+
+        def call(**kwargs):
+            return self._callable(owner, url, **kwargs)
+
+        return call
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _check_call_arguments(self, kwargs):
+        incorrect_keys = set(kwargs.keys()) != set(self._def_kwargs.keys())
+        if incorrect_keys:
+            received_keys = ','.join(kwargs.keys())
+            expected_keys = ','.join(self._def_kwargs.keys())
+            errmsg = 'Received keyword arguments: \'{}\', required: \'{}\''
+            errmsg = errmsg.format(received_keys, expected_keys)
+            raise TypeError(errmsg)
+
+    def _callable(self, entity_class, url, **kwargs):
+        self._check_call_arguments(kwargs)
+
         url = url + '/' + self.qualified_name
-        connection = self._entity_cls.__odata_connection__  # type: ODataConnection
+        connection = entity_class.__odata_connection__  # type: ODataConnection
 
         response_data = self._execute_http(connection, url, kwargs)
         response_data = (response_data or {}).get('value', {})
