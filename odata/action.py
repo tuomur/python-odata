@@ -8,8 +8,6 @@ except ImportError:
     from urlparse import urljoin
 from collections import OrderedDict
 
-from odata.connection import ODataConnection
-
 
 class Action(object):
 
@@ -17,8 +15,6 @@ class Action(object):
         self.qualified_name = qualified_name
         self._def_kwargs = def_kwargs
         self._returns_def_kwargs = {}
-
-        self._entity_cls = None
 
     def __get__(self, instance, owner):
         # return a callable that acts on EntitySet or the Entity itself
@@ -31,11 +27,15 @@ class Action(object):
         url = url or owner.__odata_url__()
 
         def call(**kwargs):
-            return self._callable(owner, url, **kwargs)
+            connection = kwargs.pop('__connection__', None)
+            connection = connection or owner.__odata_service__.default_context.connection
+            return self._callable(connection, url, **kwargs)
 
         return call
 
     def __call__(self, *args, **kwargs):
+        # could be used for global actions? this is used when Action instance
+        # is not a member of any class (Entity) and is called
         raise NotImplementedError()
 
     def _check_call_arguments(self, kwargs):
@@ -47,11 +47,10 @@ class Action(object):
             errmsg = errmsg.format(received_keys, expected_keys)
             raise TypeError(errmsg)
 
-    def _callable(self, entity_class, url, **kwargs):
+    def _callable(self, connection, url, **kwargs):
         self._check_call_arguments(kwargs)
 
         url = url + '/' + self.qualified_name
-        connection = entity_class.__odata_connection__  # type: ODataConnection
 
         response_data = self._execute_http(connection, url, kwargs)
         response_data = (response_data or {}).get('value', {})

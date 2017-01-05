@@ -90,6 +90,7 @@ class NavigationProperty(object):
             return self
 
         es = instance.__odata__
+        connection = es.connection
         parent_url = es.instance_url
         new_object = parent_url is None
         cache = self._get_parent_cache(instance)
@@ -101,11 +102,10 @@ class NavigationProperty(object):
 
         parent_url += '/'
         url = urljoin(parent_url, self.name)
-        cnx = self.entitycls.__odata_connection__
 
         if self.is_collection:
             if 'collection' not in cache:
-                raw_data = cnx.execute_get(url)
+                raw_data = connection.execute_get(url)
                 if raw_data:
                     cache['collection'] = self.instances_from_data(raw_data['value'])
                 else:
@@ -113,7 +113,7 @@ class NavigationProperty(object):
             return cache['collection']
         else:
             if 'single' not in cache:
-                raw_data = cnx.execute_get(url)
+                raw_data = connection.execute_get(url)
                 if raw_data:
                     cache['single'] = self.instances_from_data(raw_data)
                 else:

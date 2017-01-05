@@ -70,7 +70,6 @@ from odata.state import EntityState
 
 
 class EntityBase(object):
-    __odata_connection__ = None
     __odata_url_base__ = ''
     __odata_collection__ = 'Entities'
     __odata_type__ = 'ODataSchema.Entity'

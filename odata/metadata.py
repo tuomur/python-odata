@@ -36,7 +36,7 @@ class MetaData(object):
 
     def __init__(self, service):
         self.url = service.url + '$metadata/'
-        self.connection = service.connection
+        self.connection = service.default_context.connection
 
     def property_type_to_python(self, edm_type):
         return self.property_types.get(edm_type, StringProperty)

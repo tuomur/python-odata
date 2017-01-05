@@ -16,6 +16,7 @@ class EntityState(object):
         self.dirty = []
         self.nav_cache = {}
         self.data = {}
+        self.connection = None
 
     # dictionary access
     def __getitem__(self, item):

@@ -58,16 +58,16 @@ class Query(object):
     This class should not be instantiated directly, but from a
     :py:class:`~odata.service.ODataService` object.
     """
-    def __init__(self, entitycls, options=None):
+    def __init__(self, entitycls, connection=None, options=None):
         self.entity = entitycls
         self.options = options or dict()
+        self.connection = connection
 
     def __iter__(self):
-        connection = self._get_connection()
         url = self._get_url()
         options = self._get_options()
         while True:
-            data = connection.execute_get(url, options)
+            data = self.connection.execute_get(url, options)
             if 'value' in data:
                 value = data.get('value', [])
                 for row in value:
@@ -84,9 +84,6 @@ class Query(object):
 
     def __str__(self):
         return self.as_string()
-
-    def _get_connection(self):
-        return self.entity.__odata_connection__
 
     def _get_url(self):
         return self.entity.__odata_url__()
@@ -127,7 +124,10 @@ class Query(object):
         if len(self.options.get('$select', [])):
             return row
         else:
-            return self.entity.__new__(self.entity, from_data=row)
+            e = self.entity.__new__(self.entity, from_data=row)
+            es = e.__odata__
+            es.connection = self.connection
+            return e
 
     def _get_or_create_option(self, name):
         if name not in self.options:
@@ -151,7 +151,7 @@ class Query(object):
         o['$filter'] = self.options.get('$filter', [])[:]
         o['$expand'] = self.options.get('$expand', [])[:]
         o['$orderby'] = self.options.get('$orderby', [])[:]
-        return Query(self.entity, options=o)
+        return Query(self.entity, options=o, connection=self.connection)
 
     def as_string(self):
         query = self._format_params(self._get_options())
@@ -324,38 +324,6 @@ class Query(object):
         :type query_params: dict
         :return: Query result
         """
-        connection = self._get_connection()
         url = self.entity.__odata_url__()
-        response_data = connection.execute_get(url, params=query_params)
+        response_data = self.connection.execute_get(url, params=query_params)
         return (response_data or {}).get('value')
-
-    def call(self, fname, **kwargs):
-        """
-        Call a function bound on the entity. Keyword arguments must be tuples
-        of value and property type
-
-        :param fname: Function name to call
-        :param kwargs: Function arguments. Tuples of value and type
-        :return: Entities returned by the call
-        """
-        connection = self._get_connection()
-
-        url = urljoin(self.entity.__odata_url__() + '/', fname)
-
-        kwargs_escaped = []
-        for key, value in kwargs.items():
-            q_value = value[0]
-            q_type = value[1]
-            escaped_value = q_type('temp').escape_value(q_value)
-            kwargs_escaped.append((key, escaped_value))
-
-        params = ['='.join([key, value]) for key, value in kwargs_escaped]
-        params = ','.join(params)
-        url += '({0})'.format(params)
-        data = connection.execute_get(url)
-
-        r = []
-        if data:
-            for row in data.get('value', []):
-                r.append(self._create_model(row))
-        return r
