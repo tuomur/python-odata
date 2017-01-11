@@ -59,6 +59,7 @@ from .entity import EntityBase, declarative_base
 from .metadata import MetaData
 from .exceptions import ODataError
 from .context import Context
+from .action import Action, Function
 
 __all__ = (
     'ODataService',
@@ -97,6 +98,17 @@ class ODataService(object):
 
         :type Base: EntityBase
         """
+        self.Entity = self.Base  # alias
+
+        class _Action(Action):
+            __odata_service__ = self
+
+        self.Action = _Action
+
+        class _Function(Function):
+            __odata_service__ = self
+
+        self.Function = _Function
 
         if reflect_entities:
             _, self.entities = self.metadata.get_entity_sets(base=self.Base)

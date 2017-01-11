@@ -9,12 +9,26 @@ except ImportError:
 from collections import OrderedDict
 
 
-class Action(object):
+class ActionBase(object):
 
-    def __init__(self, qualified_name, **def_kwargs):
-        self.qualified_name = qualified_name
-        self._def_kwargs = def_kwargs
-        self._returns_def_kwargs = {}
+    __odata_service__ = None
+
+    name = None
+    """
+    Action's fully qualified name (usually SchemaName.ActionName)
+
+    :type name: str
+    """
+
+    parameters = None
+    """
+    A dictionary that defines what keyword arguments and what types this Action
+    accepts. For example, ``dict(productId=IntegerProperty)``
+
+    :type name: dict
+    """
+
+    return_parameters = None
 
     def __get__(self, instance, owner):
         # return a callable that acts on EntitySet or the Entity itself
@@ -28,21 +42,21 @@ class Action(object):
 
         def call(**kwargs):
             connection = kwargs.pop('__connection__', None)
-            connection = connection or owner.__odata_service__.default_context.connection
+            connection = connection or self.__odata_service__.default_context.connection
             return self._callable(connection, url, **kwargs)
 
         return call
 
     def __call__(self, *args, **kwargs):
-        # could be used for global actions? this is used when Action instance
-        # is not a member of any class (Entity) and is called
-        raise NotImplementedError()
+        connection = self.__odata_service__.default_context.connection
+        url = self.__odata_service__.url
+        return self._callable(connection, url, **kwargs)
 
     def _check_call_arguments(self, kwargs):
-        incorrect_keys = set(kwargs.keys()) != set(self._def_kwargs.keys())
+        incorrect_keys = set(kwargs.keys()) != set(self.parameters.keys())
         if incorrect_keys:
             received_keys = ','.join(kwargs.keys())
-            expected_keys = ','.join(self._def_kwargs.keys())
+            expected_keys = ','.join(self.parameters.keys())
             errmsg = 'Received keyword arguments: \'{}\', required: \'{}\''
             errmsg = errmsg.format(received_keys, expected_keys)
             raise TypeError(errmsg)
@@ -50,40 +64,50 @@ class Action(object):
     def _callable(self, connection, url, **kwargs):
         self._check_call_arguments(kwargs)
 
-        url = url + '/' + self.qualified_name
+        if not url.endswith('/'):
+            url += '/'
+        url += self.name
 
         response_data = self._execute_http(connection, url, kwargs)
         response_data = (response_data or {}).get('value', {})
 
-        if self._returns_def_kwargs and response_data:
+        if self.return_parameters and response_data:
+            # TODO: add support for collections
             return_data = OrderedDict()
             for key, value in response_data.items():
-                prop_type = self._returns_def_kwargs.get(key)
+                prop_type = self.return_parameters.get(key)
                 return_data[key] = prop_type('temp').deserialize(value)
             return return_data
         return response_data
 
     def _execute_http(self, connection, url, kwargs):
+        raise NotImplementedError()
+
+
+class Action(ActionBase):
+
+    name = 'ODataSchema.Action'
+
+    def _execute_http(self, connection, url, kwargs):
         # Execute http POST, encoding kwargs to json body
         data = OrderedDict()
         for key, value in kwargs.items():
-            prop_type = self._def_kwargs.get(key)
+            prop_type = self.parameters.get(key)
             escaped_value = prop_type('temp').serialize(value)
             data[key] = escaped_value
 
         return connection.execute_post(url, data)
 
-    def returns(self, **def_kwargs):
-        self._returns_def_kwargs = def_kwargs
-        return self
 
+class Function(ActionBase):
 
-class Function(Action):
+    name = 'ODataSchema.Function'
+
     def _execute_http(self, connection, url, kwargs):
         # Execute http GET, passing kwargs as parameters in url
         kwargs_escaped = []
         for key, value in kwargs.items():
-            prop_type = self._def_kwargs.get(key)
+            prop_type = self.parameters.get(key)
             escaped_value = prop_type('temp').escape_value(value)
             kwargs_escaped.append((key, escaped_value))
 
