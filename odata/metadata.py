@@ -37,13 +37,14 @@ class MetaData(object):
     def __init__(self, service):
         self.url = service.url + '$metadata/'
         self.connection = service.default_context.connection
+        self.service = service
 
     def property_type_to_python(self, edm_type):
         return self.property_types.get(edm_type, StringProperty)
 
     def get_entity_sets(self, base=None):
         document = self.load_document()
-        schemas, entity_sets = self.parse_document(document)
+        schemas, entity_sets, actions, functions = self.parse_document(document)
 
         entities = {}
         base_class = base or declarative_base()
@@ -121,6 +122,54 @@ class MetaData(object):
                         )
                         setattr(entity, name, nav)
 
+        for action in actions:
+            entity_type = action['is_bound_to']
+            bind_entity = None
+            if entity_type:
+                entity_type = entity_type.lstrip('Collection(').strip(')')
+                for entity in entities.values():
+                    schema = entity.__odata_schema__
+                    if schema['type'] == entity_type:
+                        bind_entity = entity
+
+            parameters_dict = {}
+            for param in action['parameters']:
+                parameters_dict[param['name']] = self.property_type_to_python(param['type'])
+
+            class _Action(self.service.Action):
+                __odata_service__ = self.service
+                name = action['fully_qualified_name']
+                parameters = parameters_dict
+
+            if bind_entity:
+                setattr(bind_entity, action['name'], _Action())
+            else:
+                self.service.actions[action['name']] = _Action()
+
+        for function in functions:
+            entity_type = function['is_bound_to']
+            bind_entity = None
+            if entity_type:
+                entity_type = entity_type.lstrip('Collection(').strip(')')
+                for entity in entities.values():
+                    schema = entity.__odata_schema__
+                    if schema['type'] == entity_type:
+                        bind_entity = entity
+
+            parameters_dict = {}
+            for param in function['parameters']:
+                parameters_dict[param['name']] = self.property_type_to_python(param['type'])
+
+            class _Function(self.service.Function):
+                __odata_service__ = self.service
+                name = function['fully_qualified_name']
+                parameters = parameters_dict
+
+            if bind_entity:
+                setattr(bind_entity, function['name'], _Function())
+            else:
+                self.service.functions[function['name']] = _Function()
+
         return base_class, entities
 
     def load_document(self):
@@ -130,6 +179,8 @@ class MetaData(object):
     def parse_document(self, doc):
         schemas = []
         container_sets = []
+        actions = []
+        functions = []
 
         if has_lxml:
             def xmlq(node, xpath):
@@ -199,6 +250,7 @@ class MetaData(object):
             schemas.append(schema_dict)
 
         for schema in xmlq(doc, 'edmx:DataServices/edm:Schema'):
+            schema_name = schema.attrib['Namespace']
             for entity_set in xmlq(schema, 'edm:EntityContainer/edm:EntitySet'):
                 set_name = entity_set.attrib['Name']
                 set_type = entity_set.attrib['EntityType']
@@ -216,4 +268,60 @@ class MetaData(object):
 
                 container_sets.append(set_dict)
 
-        return schemas, container_sets
+            for action_def in xmlq(schema, 'edm:Action'):
+                action = {
+                    'name': action_def.attrib['Name'],
+                    'fully_qualified_name': action_def.attrib['Name'],
+                    'is_bound': action_def.attrib['IsBound'] == 'true',
+                    'is_bound_to': None,
+                    'parameters': [],
+                    'return_type': None,  # TODO: not handled
+                }
+
+                if action['is_bound']:
+                    # bound actions are named SchemaNamespace.ActionName
+                    action['fully_qualified_name'] = '.'.join([schema_name, action['name']])
+
+                for def_parameter in xmlq(action_def, 'edm:Parameter'):
+                    parameter_name = def_parameter.attrib['Name']
+                    if action['is_bound'] and parameter_name == 'bindingParameter':
+                        action['is_bound_to'] = def_parameter.attrib['Type']
+                        continue
+
+                    parameter_type = def_parameter.attrib['Type']
+
+                    action['parameters'].append({
+                        'name': parameter_name,
+                        'type': parameter_type,
+                    })
+                actions.append(action)
+
+            for function_def in xmlq(schema, 'edm:Function'):
+                function = {
+                    'name': function_def.attrib['Name'],
+                    'fully_qualified_name': function_def.attrib['Name'],
+                    'is_bound': function_def.attrib.get('IsBound') == 'true',
+                    'is_bound_to': None,
+                    'parameters': [],
+                    'return_type': None,  # TODO: not handled
+                }
+
+                if function['is_bound']:
+                    # bound functions are named SchemaNamespace.FunctionName
+                    function['fully_qualified_name'] = '.'.join([schema_name, function['name']])
+
+                for def_parameter in xmlq(function_def, 'edm:Parameter'):
+                    parameter_name = def_parameter.attrib['Name']
+                    if function['is_bound'] and parameter_name == 'bindingParameter':
+                        function['is_bound_to'] = def_parameter.attrib['Type']
+                        continue
+
+                    parameter_type = def_parameter.attrib['Type']
+
+                    function['parameters'].append({
+                        'name': parameter_name,
+                        'type': parameter_type,
+                    })
+                functions.append(function)
+
+        return schemas, container_sets, actions, functions

@@ -90,6 +90,9 @@ class ODataService(object):
 
         :type entities: dict
         """
+        self.actions = {}
+        self.functions = {}
+
         self.metadata = MetaData(self)
 
         self.Base = base or declarative_base()
