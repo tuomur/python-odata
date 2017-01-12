@@ -69,7 +69,7 @@ class ActionBase(object):
         url += self.name
 
         response_data = self._execute_http(connection, url, kwargs)
-        response_data = (response_data or {}).get('value', {})
+        response_data = (response_data or {}).get('value')
 
         if self.return_parameters and response_data:
             # TODO: add support for collections

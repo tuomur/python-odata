@@ -8,11 +8,40 @@ url = 'http://unittest.server.local/odata/'
 Service = ODataService(url)
 
 
+class DemoActionWithParameters(Service.Action):
+    name = 'ODataTest.DemoActionParameters'
+    parameters = dict(
+        Name=StringProperty,
+        Price=DecimalProperty,
+    )
+
+
+class DemoAction(Service.Action):
+    name = 'ODataTest.DemoAction'
+    parameters = {}
+
+
+class _DemoUnboundAction(Service.Action):
+    name = 'ODataTest.DemoUnboundAction'
+    parameters = {}
+
+DemoUnboundAction = _DemoUnboundAction()
+
+
+class DemoFunction(Service.Function):
+    name = 'ODataTest.DemoFunction'
+    parameters = {}
+
+
 class Product(Service.Base):
     id = IntegerProperty('ProductID', primary_key=True)
     name = StringProperty('ProductName')
     category = StringProperty('Category')
     price = DecimalProperty('Price')
+
+    DemoAction = DemoAction()
+    DemoActionWithParameters = DemoActionWithParameters()
+    DemoFunction = DemoFunction()
 
 
 class ProductPart(Service.Base):
