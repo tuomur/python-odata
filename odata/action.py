@@ -41,16 +41,20 @@ class ActionBase(object):
         url = url or owner.__odata_url__()
 
         def call(**kwargs):
-            connection = kwargs.pop('__connection__', None)
-            connection = connection or self.__odata_service__.default_context.connection
+            connection = self._get_context_or_default_connection(kwargs)
             return self._callable(connection, url, **kwargs)
 
         return call
 
     def __call__(self, *args, **kwargs):
-        connection = self.__odata_service__.default_context.connection
+        connection = self._get_context_or_default_connection(kwargs)
         url = self.__odata_service__.url
         return self._callable(connection, url, **kwargs)
+
+    def _get_context_or_default_connection(self, kwargs):
+        connection = kwargs.pop('__connection__', None)
+        connection = connection or self.__odata_service__.default_context.connection
+        return connection
 
     def _check_call_arguments(self, kwargs):
         incorrect_keys = set(kwargs.keys()) != set(self.parameters.keys())
