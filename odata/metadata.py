@@ -151,8 +151,8 @@ class MetaData(object):
                 __odata_service__ = self.service
                 name = action['fully_qualified_name']
                 parameters = parameters_dict
-                returns_type = get_entity_or_prop_from_type(action['return_type'])
-                returns_type_collection = get_entity_or_prop_from_type(action['return_type_collection'])
+                return_type = get_entity_or_prop_from_type(action['return_type'])
+                return_type_collection = get_entity_or_prop_from_type(action['return_type_collection'])
 
             if bind_entity:
                 setattr(bind_entity, action['name'], _Action())
@@ -177,8 +177,8 @@ class MetaData(object):
                 __odata_service__ = self.service
                 name = function['fully_qualified_name']
                 parameters = parameters_dict
-                returns_type = get_entity_or_prop_from_type(function['return_type'])
-                returns_type_collection = get_entity_or_prop_from_type(function['return_type_collection'])
+                return_type = get_entity_or_prop_from_type(function['return_type'])
+                return_type_collection = get_entity_or_prop_from_type(function['return_type_collection'])
 
             if bind_entity:
                 setattr(bind_entity, function['name'], _Function())

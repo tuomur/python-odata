@@ -28,8 +28,8 @@ class ActionBase(object):
     :type name: dict
     """
 
-    returns_type_collection = None
-    returns_type = None
+    return_type_collection = None
+    return_type = None
 
     def __get__(self, instance, owner):
         # return a callable that acts on EntitySet or the Entity itself
@@ -78,10 +78,10 @@ class ActionBase(object):
 
         simple_types_values = self.__odata_service__.metadata.property_types.values()
 
-        if self.returns_type_collection:
-            if self.returns_type_collection in simple_types_values:
+        if self.return_type_collection:
+            if self.return_type_collection in simple_types_values:
                 values_collection = []
-                prop = self.returns_type_collection
+                prop = self.return_type_collection
                 for value in response_data:
                     deserialized = prop('temp').deserialize(value)
                     values_collection.append(deserialized)
@@ -89,16 +89,16 @@ class ActionBase(object):
 
             entity_collection = []
             for value in (response_data or []):
-                entity_instance = self.returns_type_collection.__new__(self.returns_type_collection, from_data=value)
+                entity_instance = self.return_type_collection.__new__(self.return_type_collection, from_data=value)
                 entity_collection.append(entity_instance)
             return entity_collection
 
-        if self.returns_type:
-            if self.returns_type in simple_types_values:
-                prop = self.returns_type
+        if self.return_type:
+            if self.return_type in simple_types_values:
+                prop = self.return_type
                 return prop('temp').deserialize(response_data)
 
-            entity_instance = self.returns_type.__new__(self.returns_type, from_data=response_data)
+            entity_instance = self.return_type.__new__(self.return_type, from_data=response_data)
             return entity_instance
 
         # no defined type, return whatever we got
