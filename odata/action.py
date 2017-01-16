@@ -76,12 +76,12 @@ class ActionBase(object):
         response_data = self._execute_http(connection, url, kwargs)
         response_data = (response_data or {}).get('value')
 
-        simple_types = self.__odata_service__.metadata.property_types
+        simple_types_values = self.__odata_service__.metadata.property_types.values()
 
         if self.returns_type_collection:
-            if self.returns_type_collection in simple_types:
+            if self.returns_type_collection in simple_types_values:
                 values_collection = []
-                prop = simple_types.get(self.returns_type)
+                prop = self.returns_type_collection
                 for value in response_data:
                     deserialized = prop('temp').deserialize(value)
                     values_collection.append(deserialized)
@@ -94,8 +94,8 @@ class ActionBase(object):
             return entity_collection
 
         if self.returns_type:
-            if self.returns_type in simple_types:
-                prop = simple_types.get(self.returns_type)
+            if self.returns_type in simple_types_values:
+                prop = self.returns_type
                 return prop('temp').deserialize(response_data)
 
             entity_instance = self.returns_type.__new__(self.returns_type, from_data=response_data)
