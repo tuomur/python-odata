@@ -122,6 +122,17 @@ class MetaData(object):
                         )
                         setattr(entity, name, nav)
 
+        def get_entity_or_prop_from_type(typename):
+            if typename is None:
+                return
+
+            for entity in entities.values():
+                schema = entity.__odata_schema__
+                if schema['type'] == typename:
+                    return entity
+
+            return self.property_type_to_python(typename)
+
         for action in actions:
             entity_type = action['is_bound_to']
             bind_entity = None
@@ -140,6 +151,8 @@ class MetaData(object):
                 __odata_service__ = self.service
                 name = action['fully_qualified_name']
                 parameters = parameters_dict
+                returns_type = get_entity_or_prop_from_type(action['return_type'])
+                returns_type_collection = get_entity_or_prop_from_type(action['return_type_collection'])
 
             if bind_entity:
                 setattr(bind_entity, action['name'], _Action())
@@ -164,6 +177,8 @@ class MetaData(object):
                 __odata_service__ = self.service
                 name = function['fully_qualified_name']
                 parameters = parameters_dict
+                returns_type = get_entity_or_prop_from_type(function['return_type'])
+                returns_type_collection = get_entity_or_prop_from_type(function['return_type_collection'])
 
             if bind_entity:
                 setattr(bind_entity, function['name'], _Function())
@@ -275,7 +290,8 @@ class MetaData(object):
                     'is_bound': action_def.attrib['IsBound'] == 'true',
                     'is_bound_to': None,
                     'parameters': [],
-                    'return_type': None,  # TODO: not handled
+                    'return_type': None,
+                    'return_type_collection': None,
                 }
 
                 if action['is_bound']:
@@ -294,6 +310,14 @@ class MetaData(object):
                         'name': parameter_name,
                         'type': parameter_type,
                     })
+
+                for def_return_type in xmlq(action_def, 'edm:ReturnType'):
+                    type_name = def_return_type.attrib['Type']
+                    if 'Collection(' in type_name:
+                        action['return_type_collection'] = type_name.lstrip('Collection(').rstrip(')')
+                    else:
+                        action['return_type'] = type_name
+
                 actions.append(action)
 
             for function_def in xmlq(schema, 'edm:Function'):
@@ -303,7 +327,8 @@ class MetaData(object):
                     'is_bound': function_def.attrib.get('IsBound') == 'true',
                     'is_bound_to': None,
                     'parameters': [],
-                    'return_type': None,  # TODO: not handled
+                    'return_type': None,
+                    'return_type_collection': None,
                 }
 
                 if function['is_bound']:
@@ -322,6 +347,14 @@ class MetaData(object):
                         'name': parameter_name,
                         'type': parameter_type,
                     })
+
+                for def_return_type in xmlq(function_def, 'edm:ReturnType'):
+                    type_name = def_return_type.attrib['Type']
+                    if 'Collection(' in type_name:
+                        function['return_type_collection'] = type_name.lstrip('Collection(').rstrip(')')
+                    else:
+                        function['return_type'] = type_name
+
                 functions.append(function)
 
         return schemas, container_sets, actions, functions

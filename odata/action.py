@@ -28,7 +28,8 @@ class ActionBase(object):
     :type name: dict
     """
 
-    return_parameters = None
+    returns_type_collection = None
+    returns_type = None
 
     def __get__(self, instance, owner):
         # return a callable that acts on EntitySet or the Entity itself
@@ -75,13 +76,32 @@ class ActionBase(object):
         response_data = self._execute_http(connection, url, kwargs)
         response_data = (response_data or {}).get('value')
 
-        if self.return_parameters and response_data:
-            # TODO: add support for collections
-            return_data = OrderedDict()
-            for key, value in response_data.items():
-                prop_type = self.return_parameters.get(key)
-                return_data[key] = prop_type('temp').deserialize(value)
-            return return_data
+        simple_types = self.__odata_service__.metadata.property_types
+
+        if self.returns_type_collection:
+            if self.returns_type_collection in simple_types:
+                values_collection = []
+                prop = simple_types.get(self.returns_type)
+                for value in response_data:
+                    deserialized = prop('temp').deserialize(value)
+                    values_collection.append(deserialized)
+                return values_collection
+
+            entity_collection = []
+            for value in (response_data or []):
+                entity_instance = self.returns_type_collection.__new__(self.returns_type_collection, from_data=value)
+                entity_collection.append(entity_instance)
+            return entity_collection
+
+        if self.returns_type:
+            if self.returns_type in simple_types:
+                prop = simple_types.get(self.returns_type)
+                return prop('temp').deserialize(response_data)
+
+            entity_instance = self.returns_type.__new__(self.returns_type, from_data=response_data)
+            return entity_instance
+
+        # no defined type, return whatever we got
         return response_data
 
     def _execute_http(self, connection, url, kwargs):
