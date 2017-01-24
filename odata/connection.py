@@ -116,7 +116,7 @@ class ODataConnection(object):
             msg = u'Unsupported response Content-Type: {0}'.format(response_ct)
             raise ODataError(msg)
 
-    def execute_post(self, url, data):
+    def execute_post(self, url, data, params=None):
         headers = {
             'Content-Type': 'application/json',
         }
@@ -127,7 +127,7 @@ class ODataConnection(object):
         self.log.info(u'POST {0}'.format(url))
         self.log.info(u'Payload: {0}'.format(data))
 
-        response = self._do_post(url, data=data, headers=headers)
+        response = self._do_post(url, data=data, headers=headers, params=params)
         self._handle_odata_error(response)
         response_ct = response.headers.get('content-type', '')
         if response.status_code == requests.codes.no_content:

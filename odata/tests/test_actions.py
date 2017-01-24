@@ -86,3 +86,20 @@ class TestFunctions(unittest.TestCase):
             )
             result = Product.DemoFunction()
         self.assertIsNone(result)
+
+    def test_call_function_with_result_query(self):
+        def request_callback(request):
+            self.assertTrue('filter=ProductName+eq+%27testtest%27' in request.url)
+
+            headers = {}
+            body = dict(value='ok')
+            return requests.codes.ok, headers, json.dumps(body)
+
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, Product.__odata_url__() + '/ODataTest.DemoFunction()',
+                request_callback, content_type='application/json')
+
+            query = Service.query(Product)
+            query = query.filter(Product.name == 'testtest')
+            Product.DemoFunction(query)

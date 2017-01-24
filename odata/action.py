@@ -41,16 +41,24 @@ class ActionBase(object):
         # default to /MyEntity/SchemaName.ActionName
         url = url or owner.__odata_url__()
 
-        def call(**kwargs):
+        def call(*args, **kwargs):
+            query = None
+            if len(args) > 0:
+                query = args[0]
+
             connection = self._get_context_or_default_connection(kwargs)
-            return self._callable(connection, url, **kwargs)
+            return self._callable(connection, url, query, **kwargs)
 
         return call
 
     def __call__(self, *args, **kwargs):
+        query = None
+        if len(args) > 0:
+            query = args[0]
+
         connection = self._get_context_or_default_connection(kwargs)
         url = self.__odata_service__.url
-        return self._callable(connection, url, **kwargs)
+        return self._callable(connection, url, query, **kwargs)
 
     def _get_context_or_default_connection(self, kwargs):
         connection = kwargs.pop('__connection__', None)
@@ -66,14 +74,18 @@ class ActionBase(object):
             errmsg = errmsg.format(received_keys, expected_keys)
             raise TypeError(errmsg)
 
-    def _callable(self, connection, url, **kwargs):
+    def _callable(self, connection, url, query, **kwargs):
         self._check_call_arguments(kwargs)
 
         if not url.endswith('/'):
             url += '/'
         url += self.name
 
-        response_data = self._execute_http(connection, url, kwargs)
+        query_options = None
+        if query:
+            query_options = query._get_options()
+
+        response_data = self._execute_http(connection, url, query_options, kwargs)
         response_data = (response_data or {}).get('value')
 
         simple_types_values = self.__odata_service__.metadata.property_types.values()
@@ -104,7 +116,7 @@ class ActionBase(object):
         # no defined type, return whatever we got
         return response_data
 
-    def _execute_http(self, connection, url, kwargs):
+    def _execute_http(self, connection, url, query_options, kwargs):
         raise NotImplementedError()
 
 
@@ -112,7 +124,7 @@ class Action(ActionBase):
 
     name = 'ODataSchema.Action'
 
-    def _execute_http(self, connection, url, kwargs):
+    def _execute_http(self, connection, url, query_options, kwargs):
         # Execute http POST, encoding kwargs to json body
         data = OrderedDict()
         for key, value in kwargs.items():
@@ -120,14 +132,14 @@ class Action(ActionBase):
             escaped_value = prop_type('temp').serialize(value)
             data[key] = escaped_value
 
-        return connection.execute_post(url, data)
+        return connection.execute_post(url, data, params=query_options)
 
 
 class Function(ActionBase):
 
     name = 'ODataSchema.Function'
 
-    def _execute_http(self, connection, url, kwargs):
+    def _execute_http(self, connection, url, query_options, kwargs):
         # Execute http GET, passing kwargs as parameters in url
         kwargs_escaped = []
         for key, value in kwargs.items():
@@ -140,4 +152,4 @@ class Function(ActionBase):
         params = ','.join(params)
         url += '({0})'.format(params)
 
-        return connection.execute_get(url)
+        return connection.execute_get(url, params=query_options)
