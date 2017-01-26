@@ -72,7 +72,7 @@ class ODataConnection(object):
             code = 'None'
             message = 'Server did not supply any error messages'
             detailed_message = 'None'
-            response_ct = response.headers.get('content-type')
+            response_ct = response.headers.get('content-type', '')
 
             if 'application/json' in response_ct:
                 errordata = response.json()
