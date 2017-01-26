@@ -64,14 +64,16 @@ class PropertyBase(object):
 
     :param name: Name of the property in the endpoint
     :param primary_key: This property is a primary key
+    :param is_collection: This property contains multiple values
     """
-    def __init__(self, name, primary_key=False):
+    def __init__(self, name, primary_key=False, is_collection=False):
         """
         :type name: str
         :type primary_key: bool
         """
         self.name = name
         self.primary_key = primary_key
+        self.is_collection = is_collection
 
     def __repr__(self):
         return '<Property({0})>'.format(self.name)
@@ -88,7 +90,16 @@ class PropertyBase(object):
 
         if self.name in es:
             raw_data = es[self.name]
-            return self.deserialize(raw_data)
+            if self.is_collection:
+                if raw_data is None:
+                    return
+
+                data = []
+                for i in raw_data:
+                    data.append(self.deserialize(i))
+                return data
+            else:
+                return self.deserialize(raw_data)
         else:
             raise AttributeError()
 
@@ -100,7 +111,13 @@ class PropertyBase(object):
         es = instance.__odata__
 
         if self.name in es:
-            new_value = self.serialize(value)
+            if self.is_collection:
+                data = []
+                for i in (value or []):
+                    data.append(self.serialize(i))
+                new_value = data
+            else:
+                new_value = self.serialize(value)
             old_value = es[self.name]
             if new_value != old_value:
                 es[self.name] = new_value

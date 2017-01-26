@@ -90,7 +90,8 @@ class MetaData(object):
 
                 type_ = self.property_type_to_python(prop['type'])
                 type_options = {
-                    'primary_key': prop['is_primary_key']
+                    'primary_key': prop['is_primary_key'],
+                    'is_collection': prop['is_collection'],
                 }
                 setattr(Entity, prop_name, type_(prop_name, **type_options))
 
@@ -240,8 +241,9 @@ class MetaData(object):
 
                     entity['properties'].append({
                         'name': p_name,
-                        'type': p_type,
+                        'type': p_type.lstrip('Collection(').rstrip(')'),
                         'is_primary_key': entity_pk_name == p_name,
+                        'is_collection': p_type.startswith('Collection('),
                     })
 
                 for nav_property in xmlq(entity_type, 'edm:NavigationProperty'):

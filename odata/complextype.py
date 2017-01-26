@@ -30,7 +30,7 @@ class ComplexTypeProperty(PropertyBase):
         """
         :type name: str
         """
-        super(ComplexTypeProperty, self).__init__(name, primary_key=False)
+        super(ComplexTypeProperty, self).__init__(name)
         self.type_class = type_class
 
     def serialize(self, value):
