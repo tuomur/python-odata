@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import sys
 from setuptools import setup, find_packages
 
-requires = (
+requires = [
     'requests>=2.0',
     'python-dateutil',
-)
+]
+
+# support for enums from pypi when on older python
+if sys.version_info < (3, 4):
+    requires.append('enum34')
 
 tests_require = (
     'responses',

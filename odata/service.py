@@ -92,6 +92,7 @@ class ODataService(object):
         """
         self.actions = {}
         self.functions = {}
+        self.types = {}
 
         self.metadata = MetaData(self)
 
@@ -114,7 +115,7 @@ class ODataService(object):
         self.Function = _Function
 
         if reflect_entities:
-            _, self.entities = self.metadata.get_entity_sets(base=self.Base)
+            _, self.entities, self.types = self.metadata.get_entity_sets(base=self.Base)
 
         self.Base.__odata_url_base__ = url
         self.Base.__odata_service__ = self

@@ -22,8 +22,7 @@ class ComplexTypeProperty(PropertyBase):
     A property that contains a ComplexType object
 
     :param name: Name of the property in the endpoint
-    :param type_class: A subclass of ComplexType. This is used when returning
-    data from entity
+    :param type_class: A subclass of ComplexType
     """
 
     def __init__(self, name, type_class=ComplexType):

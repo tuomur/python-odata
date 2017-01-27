@@ -13,6 +13,7 @@ except ImportError:
 from .entity import declarative_base
 from .property import StringProperty, IntegerProperty, DecimalProperty, \
     DatetimeProperty, BooleanProperty, NavigationProperty, UUIDProperty
+from .enumtype import EnumType, EnumTypeProperty
 
 
 class MetaData(object):
@@ -48,6 +49,7 @@ class MetaData(object):
 
         entities = {}
         base_class = base or declarative_base()
+        all_types = {}
 
         subclasses = []
 
@@ -58,6 +60,12 @@ class MetaData(object):
                         'name': entity_type['name'],
                         'schema': entity_type,
                     })
+
+        for schema in schemas:
+            for enum_type in schema['enum_types']:
+                names = [(i['name'], i['value']) for i in enum_type['members']]
+                created_enum = EnumType(enum_type['name'], names=names)
+                all_types[enum_type['fully_qualified_name']] = created_enum
 
         for entity_set in entity_sets + subclasses:
             schema = entity_set['schema']
@@ -81,6 +89,8 @@ class MetaData(object):
 
                 Entity.__name__ = entity_name
 
+            all_types[schema['type']] = Entity
+
             for prop in schema.get('properties'):
                 prop_name = prop['name']
 
@@ -88,12 +98,18 @@ class MetaData(object):
                     # do not replace existing properties (from Base)
                     continue
 
-                type_ = self.property_type_to_python(prop['type'])
-                type_options = {
-                    'primary_key': prop['is_primary_key'],
-                    'is_collection': prop['is_collection'],
-                }
-                setattr(Entity, prop_name, type_(prop_name, **type_options))
+                property_type = all_types.get(prop['type'])
+
+                if property_type and issubclass(property_type, EnumType):
+                    property_instance = EnumTypeProperty(prop_name, enum_class=property_type)
+                else:
+                    type_ = self.property_type_to_python(prop['type'])
+                    type_options = {
+                        'primary_key': prop['is_primary_key'],
+                        'is_collection': prop['is_collection'],
+                    }
+                    property_instance = type_(prop_name, **type_options)
+                setattr(Entity, prop_name, property_instance)
 
             entities[entity_name] = Entity
 
@@ -186,7 +202,7 @@ class MetaData(object):
             else:
                 self.service.functions[function['name']] = _Function()
 
-        return base_class, entities
+        return base_class, entities, all_types
 
     def load_document(self):
         response = self.connection._do_get(self.url)
@@ -211,7 +227,25 @@ class MetaData(object):
             schema_dict = {
                 'name': schema_name,
                 'entities': [],
+                'enum_types': [],
+                'complex_types': [],
             }
+
+            for enum_type in xmlq(schema, 'edm:EnumType'):
+                enum_name = enum_type.attrib['Name']
+                enum = {
+                    'name': enum_name,
+                    'fully_qualified_name': '.'.join([schema_name, enum_name]),
+                    'members': []
+                }
+                for enum_member in xmlq(enum_type, 'edm:Member'):
+                    member_name = enum_member.attrib['Name']
+                    member_value = int(enum_member.attrib['Value'])
+                    enum['members'].append({
+                        'name': member_name,
+                        'value': member_value,
+                    })
+                schema_dict['enum_types'].append(enum)
 
             for entity_type in xmlq(schema, 'edm:EntityType'):
                 entity_name = entity_type.attrib['Name']
