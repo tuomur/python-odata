@@ -12,7 +12,6 @@ from odata.tests import Service, Product, ProductWithNavigation, ProductPart
 
 class TestSimpleObjectManipulation(unittest.TestCase):
 
-    @responses.activate
     def test_create(self):
         # Post call ###########################################################
         def request_callback(request):
@@ -29,23 +28,22 @@ class TestSimpleObjectManipulation(unittest.TestCase):
             headers = {}
             return requests.codes.created, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.POST, Product.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
-
         new_product = Product()
         new_product.name = u'New Test Product'
         new_product.category = u'Category #1'
         new_product.price = 34.5
 
-        Service.save(new_product)
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.POST, Product.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
+
+            Service.save(new_product)
 
         assert new_product.id is not None, 'Product.id is not set'
 
-    @responses.activate
     def test_create_deep_inserts(self):
         # Initial part data ###################################################
         def request_callback_part(request):
@@ -60,14 +58,14 @@ class TestSimpleObjectManipulation(unittest.TestCase):
             headers = {}
             return requests.codes.created, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, ProductPart.__odata_url__(),
-            callback=request_callback_part,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, ProductPart.__odata_url__(),
+                callback=request_callback_part,
+                content_type='application/json',
+            )
 
-        queried_part = Service.query(ProductPart).first()
+            queried_part = Service.query(ProductPart).first()
 
         # Post call ###########################################################
         def request_callback(request):
@@ -96,13 +94,6 @@ class TestSimpleObjectManipulation(unittest.TestCase):
             headers = {}
             return requests.codes.created, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.POST, ProductWithNavigation.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
-
         part = ProductPart()
         part.name = 'Foo'
         part.size = 12.5
@@ -113,12 +104,17 @@ class TestSimpleObjectManipulation(unittest.TestCase):
         new_product.price = 34.5
         new_product.parts = [part, queried_part]
 
-        Service.save(new_product)
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.POST, ProductWithNavigation.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
+
+            Service.save(new_product)
 
         assert new_product.id is not None, 'Product.id is not set'
 
-
-    @responses.activate
     def test_read(self):
         expected_id = 1024
         expected_name = 'Existing entity'
@@ -138,20 +134,20 @@ class TestSimpleObjectManipulation(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, Product.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, Product.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
 
-        product = Service.query(Product).first()
+            product = Service.query(Product).first()
+
         assert product.id == expected_id
         assert product.name == expected_name
         assert product.category == expected_category
         assert product.price == expected_price
 
-    @responses.activate
     def test_update(self):
         expected_id = 1024
         expected_name = 'Existing entity'
@@ -171,14 +167,15 @@ class TestSimpleObjectManipulation(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, Product.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, Product.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
 
-        product = Service.query(Product).first()
+            product = Service.query(Product).first()
+
         new_name = 'Changed value'
 
         # Patch call ##########################################################
@@ -188,13 +185,6 @@ class TestSimpleObjectManipulation(unittest.TestCase):
             assert payload['ProductName'] == new_name
             headers = {}
             return requests.codes.no_content, headers, ''
-
-        responses.add_callback(
-            responses.PATCH, product.__odata__.instance_url,
-            callback=request_callback_patch,
-            content_type='application/json',
-        )
-        #######################################################################
 
         # Reload call #########################################################
         def request_callback_reload(request):
@@ -209,19 +199,23 @@ class TestSimpleObjectManipulation(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, product.__odata__.instance_url,
-            callback=request_callback_reload,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.PATCH, product.__odata__.instance_url,
+                callback=request_callback_patch,
+                content_type='application/json',
+            )
+            rsps.add_callback(
+                rsps.GET, product.__odata__.instance_url,
+                callback=request_callback_reload,
+                content_type='application/json',
+            )
 
-        product.name = new_name
-        Service.save(product)
+            product.name = new_name
+            Service.save(product)
 
         assert product.name == new_name
 
-    @responses.activate
     def test_delete(self):
         # Initial data ########################################################
         def request_callback(request):
@@ -236,25 +230,25 @@ class TestSimpleObjectManipulation(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, Product.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, Product.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
 
-        product = Service.query(Product).first()
+            product = Service.query(Product).first()
 
         # Delete call #########################################################
         def request_callback_delete(request):
             headers = {}
             return requests.codes.ok, headers, ''
 
-        responses.add_callback(
-            responses.DELETE, product.__odata__.instance_url,
-            callback=request_callback_delete,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.DELETE, product.__odata__.instance_url,
+                callback=request_callback_delete,
+                content_type='application/json',
+            )
 
-        Service.delete(product)
+            Service.delete(product)

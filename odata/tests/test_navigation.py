@@ -11,7 +11,6 @@ from odata.tests import Service, ProductWithNavigation, ProductPart, Manufacture
 
 class TestNavigationObjects(unittest.TestCase):
 
-    @responses.activate
     def test_read_single_navigation_property(self):
         # Initial data ########################################################
         def request_callback(request):
@@ -26,14 +25,14 @@ class TestNavigationObjects(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, ProductWithNavigation.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, ProductWithNavigation.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
 
-        product = Service.query(ProductWithNavigation).first()
+            product = Service.query(ProductWithNavigation).first()
 
         # Get parts ###########################################################
         parts_url = product.__odata__.instance_url + '/Manufacturer'
@@ -49,18 +48,16 @@ class TestNavigationObjects(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, parts_url,
-            callback=request_callback_manufacturer,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, parts_url,
+                callback=request_callback_manufacturer,
+                content_type='application/json',
+            )
+            mf = product.manufacturer
 
-        mf = product.manufacturer
         assert isinstance(mf, Manufacturer)
 
-
-    @responses.activate
     def test_read_collection_navigation_property(self):
         # Initial data ########################################################
         def request_callback(request):
@@ -75,14 +72,13 @@ class TestNavigationObjects(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, ProductWithNavigation.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
-
-        product = Service.query(ProductWithNavigation).first()
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, ProductWithNavigation.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
+            product = Service.query(ProductWithNavigation).first()
 
         # Get parts ###########################################################
         parts_url = product.__odata__.instance_url + '/Parts'
@@ -98,17 +94,16 @@ class TestNavigationObjects(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, parts_url,
-            callback=request_callback_parts,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, parts_url,
+                callback=request_callback_parts,
+                content_type='application/json',
+            )
 
-        for part in product.parts:
-            assert isinstance(part, ProductPart)
+            for part in product.parts:
+                assert isinstance(part, ProductPart)
 
-    @responses.activate
     def test_read_expanded_navigation_property(self):
         # Initial data ########################################################
         def request_callback(request):
@@ -130,34 +125,21 @@ class TestNavigationObjects(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, ProductWithNavigation.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, ProductWithNavigation.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
 
-        query = Service.query(ProductWithNavigation)
-        query.expand(ProductWithNavigation.parts)
-        product = query.first()
+            query = Service.query(ProductWithNavigation)
+            query.expand(ProductWithNavigation.parts)
+            product = query.first()
 
         # Get parts ###########################################################
-        parts_url = product.__odata__.instance_url + '/Parts'
-
-        def request_callback_parts(request):
-            assert False, 'Expanded NavigationProperty should not cause GET'
-
-        responses.add_callback(
-            responses.GET, parts_url,
-            callback=request_callback_parts,
-            content_type='application/json',
-        )
-        #######################################################################
-
         for part in product.parts:
             assert isinstance(part, ProductPart)
 
-    @responses.activate
     def test_set_navigation_property(self):
         # Initial data ########################################################
         def request_callback(request):
@@ -172,14 +154,14 @@ class TestNavigationObjects(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, ProductWithNavigation.__odata_url__(),
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, ProductWithNavigation.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
 
-        product = Service.query(ProductWithNavigation).first()
+            product = Service.query(ProductWithNavigation).first()
 
         # Get part ############################################################
         def request_callback_parts(request):
@@ -193,14 +175,14 @@ class TestNavigationObjects(unittest.TestCase):
             headers = {}
             return requests.codes.ok, headers, json.dumps(resp_body)
 
-        responses.add_callback(
-            responses.GET, ProductPart.__odata_url__(),
-            callback=request_callback_parts,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.GET, ProductPart.__odata_url__(),
+                callback=request_callback_parts,
+                content_type='application/json',
+            )
+            part = Service.query(ProductPart).first()
 
-        part = Service.query(ProductPart).first()
         product.parts = [part]
 
         # Patch call ##########################################################
@@ -214,19 +196,18 @@ class TestNavigationObjects(unittest.TestCase):
             headers = {}
             return requests.codes.no_content, headers, ''
 
-        responses.add_callback(
-            responses.PATCH, product.__odata__.instance_url,
-            callback=request_callback_set_parts,
-            content_type='application/json',
-        )
-        #######################################################################
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.PATCH, product.__odata__.instance_url,
+                callback=request_callback_set_parts,
+                content_type='application/json',
+            )
 
-        # Reload data #########################################################
-        responses.add_callback(
-            responses.GET, product.__odata__.instance_url,
-            callback=request_callback,
-            content_type='application/json',
-        )
-        #######################################################################
+            # Reload data #####################################################
+            rsps.add_callback(
+                rsps.GET, product.__odata__.instance_url,
+                callback=request_callback,
+                content_type='application/json',
+            )
 
-        Service.save(product)
+            Service.save(product)
