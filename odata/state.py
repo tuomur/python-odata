@@ -72,10 +72,21 @@ class EntityState(object):
 
     @property
     def id(self):
-        prop_name, prop = self.primary_key_property
-        value = self.data.get(prop.name)
-        if value:
-            return u'{0}({1})'.format(self.entity.__odata_collection__, prop.escape_value(value))
+        ids = []
+        entity_name = self.entity.__odata_collection__
+        for prop_name, prop in self.primary_key_properties:
+            value = self.data.get(prop.name)
+            if value:
+                ids.append((prop, str(prop.escape_value(value))))
+        if len(ids) == 1:
+            key_value = ids[0][1]
+            return u'{0}({1})'.format(entity_name,
+                                      key_value)
+        if len(ids) > 1:
+            key_ids = []
+            for prop, key_value in ids:
+                key_ids.append('{0}={1}'.format(prop.name, key_value))
+            return u'{0}({1})'.format(entity_name, ','.join(key_ids))
 
     @property
     def instance_url(self):
@@ -92,10 +103,12 @@ class EntityState(object):
         return props
 
     @property
-    def primary_key_property(self):
+    def primary_key_properties(self):
+        pks = []
         for prop_name, prop in self.properties:
             if prop.primary_key is True:
-                return prop_name, prop
+                pks.append((prop_name, prop))
+        return pks
 
     @property
     def navigation_properties(self):
@@ -149,8 +162,8 @@ class EntityState(object):
         for _, prop in es.properties:
             insert_data[prop.name] = es[prop.name]
 
-        _, pk_prop = es.primary_key_property
-        insert_data.pop(pk_prop.name)
+        for _, pk_prop in es.primary_key_properties:
+            insert_data.pop(pk_prop.name)
 
         # Deep insert from nav properties
         for prop_name, prop in es.navigation_properties:

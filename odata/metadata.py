@@ -264,10 +264,10 @@ class MetaData(object):
                     base_type = base_type
                     entity['base_type'] = base_type
 
-                entity_pk_name = None
-                pk_property = xmlq(entity_type, 'edm:Key/edm:PropertyRef')
-                if pk_property:
-                    entity_pk_name = pk_property[0].attrib['Name']
+                entity_pks = {}
+                for pk_property in xmlq(entity_type, 'edm:Key/edm:PropertyRef'):
+                    pk_property_name = pk_property.attrib['Name']
+                    entity_pks[pk_property_name] = 0
 
                 for entity_property in xmlq(entity_type, 'edm:Property'):
                     p_name = entity_property.attrib['Name']
@@ -276,7 +276,7 @@ class MetaData(object):
                     entity['properties'].append({
                         'name': p_name,
                         'type': p_type.lstrip('Collection(').rstrip(')'),
-                        'is_primary_key': entity_pk_name == p_name,
+                        'is_primary_key': p_name in entity_pks,
                         'is_collection': p_type.startswith('Collection('),
                     })
 

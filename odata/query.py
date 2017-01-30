@@ -288,19 +288,30 @@ class Query(object):
             raise exc.MultipleResultsFound()
         return data[0]
 
-    def get(self, pk):
+    def get(self, *pk, **composite_keys):
         """
         Return a Entity with the given primary key
 
         :param pk: Primary key value
+        :param composite_keys: Primary key values for Entities with composite keys
         :return: Entity instance or None
         """
         i = self.entity.__new__(self.entity)
         es = i.__odata__
-        _, prop = es.primary_key_property
+
         oldfilters = self._get_or_create_option('$filter')
 
-        self.options['$filter'] = [prop == pk]
+        tempfilters = []
+
+        if pk:
+            pk = pk[0]
+            prop = es.primary_key_properties[0][1]
+            tempfilters.append(prop == pk)
+        else:
+            for _, prop in es.primary_key_properties:
+                tempfilters.append(prop == composite_keys[prop.name])
+
+        self.options['$filter'] = tempfilters
         data = list(iter(self))
 
         self.options['$filter'] = oldfilters

@@ -105,12 +105,8 @@ class EntityBase(object):
 
     def __repr__(self):
         clsname = self.__class__.__name__
-        prop_name, prop = self.__odata__.primary_key_property
-        if prop:
-            value = self.__odata__[prop.name]
-            if value:
-                return '<Entity({0}:{1})>'.format(clsname, prop.escape_value(value))
-        return '<Entity({0})>'.format(clsname)
+        display_string = self.__odata__.id or clsname
+        return '<Entity({0})>'.format(display_string)
 
     def __eq__(self, other):
         if isinstance(other, EntityBase):
