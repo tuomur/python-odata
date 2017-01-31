@@ -17,6 +17,8 @@ class EntityState(object):
         self.nav_cache = {}
         self.data = {}
         self.connection = None
+        # does this object exist serverside
+        self.persisted = False
 
     # dictionary access
     def __getitem__(self, item):
@@ -162,8 +164,10 @@ class EntityState(object):
         for _, prop in es.properties:
             insert_data[prop.name] = es[prop.name]
 
+        # Allow pk properties only if they have values
         for _, pk_prop in es.primary_key_properties:
-            insert_data.pop(pk_prop.name)
+            if insert_data[pk_prop.name] is None:
+                insert_data.pop(pk_prop.name)
 
         # Deep insert from nav properties
         for prop_name, prop in es.navigation_properties:

@@ -142,6 +142,9 @@ class ODataService(object):
         """
         entity.__odata__.describe()
 
+    def is_entity_saved(self, entity):
+        return self.default_context.is_entity_saved(entity)
+
     def query(self, entitycls):
         """
         Start a new query for given entity class

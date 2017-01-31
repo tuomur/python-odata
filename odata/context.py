@@ -46,15 +46,18 @@ class Context:
         as new. Updating an entity will only send the changed values
 
         :param entity: Model instance to insert or update
+        :type entity: EntityBase
         :param force_refresh: Read full entity data again from service after PATCH call
         :raises ODataConnectionError: Invalid data or serverside error. Server returned an HTTP error code
         """
-        instance_url = entity.__odata__.instance_url
 
-        if instance_url is None:
-            self._insert_new(entity)
-        else:
+        if self.is_entity_saved(entity):
             self._update_existing(entity, force_refresh=force_refresh)
+        else:
+            self._insert_new(entity)
+
+    def is_entity_saved(self, entity):
+        return entity.__odata__.persisted
 
     def _insert_new(self, entity):
         """
@@ -71,6 +74,7 @@ class Context:
         saved_data = self.connection.execute_post(url, insert_data)
         es.reset()
         es.connection = self.connection
+        es.persisted = True
 
         if saved_data is not None:
             es.update(saved_data)

@@ -97,6 +97,8 @@ class EntityBase(object):
 
             for prop_name, prop in es.properties:
                 i.__odata__[prop.name] = raw_data.get(prop.name)
+
+            i.__odata__.persisted = True
         else:
             for prop_name, prop in es.properties:
                 i.__odata__[prop.name] = None
