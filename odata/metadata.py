@@ -323,7 +323,7 @@ class MetaData(object):
                 action = {
                     'name': action_def.attrib['Name'],
                     'fully_qualified_name': action_def.attrib['Name'],
-                    'is_bound': action_def.attrib['IsBound'] == 'true',
+                    'is_bound': action_def.attrib.get('IsBound') == 'true',
                     'is_bound_to': None,
                     'parameters': [],
                     'return_type': None,

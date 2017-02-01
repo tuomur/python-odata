@@ -22,8 +22,14 @@ class TestMetadataImport(TestCase):
             Service = ODataService('http://demo.local/odata/', reflect_entities=True)
 
         self.assertIn('Product', Service.entities)
+
         Product = Service.entities['Product']
         ProductWithNavigation = Service.entities['ProductWithNavigation']
+
         assert issubclass(Product, EntityBase)
+        assert hasattr(Product, 'DemoAction')
+        assert hasattr(Product, 'DemoActionWithParameters')
         assert hasattr(ProductWithNavigation, 'Manufacturer')
         self.assertIn('Manufacturer', Service.entities)
+
+        self.assertIn('DemoUnboundAction', Service.actions)
