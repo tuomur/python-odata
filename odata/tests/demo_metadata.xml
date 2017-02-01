@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Version="4.0">
+    <edmx:DataServices>
+        <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="DemoService.Models">
+            <EntityType Name="Product">
+                <Key>
+                    <PropertyRef Name="ProductID"/>
+                </Key>
+                <Property Name="ProductID" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="Name" Type="Edm.String"/>
+                <Property Name="Category" Type="Edm.String"/>
+                <Property Name="Price" Type="Edm.Decimal"/>
+                <Property Name="ColorSelection" Type="DemoService.Models.ColorSelection"/>
+            </EntityType>
+            <EntityType Name="ProductWithNavigation" BaseType="DemoService.Models.Product">
+                <Property Name="ManufacturerID" Type="Edm.Int32" Nullable="false"/>
+                <NavigationProperty Name="Manufacturer" Type="DemoService.Models.Manufacturer"/>
+            </EntityType>
+            <EntityType Name="Manufacturer">
+                <Key>
+                    <PropertyRef Name="ManufacturerID"/>
+                </Key>
+                <Property Name="ManufacturerID" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="Name" Type="Edm.String"/>
+            </EntityType>
+            <EntityType Name="ProductManufacturerSales">
+                <Key>
+                    <PropertyRef Name="UnitGroupId"/>
+                </Key>
+                <Property Name="ProductID" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="ManufacturerID" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="SalesAmount" Type="Edm.Decimal"/>
+            </EntityType>
+            <EnumType Name="ColorSelection">
+                <Member Name="Black" Value="0"/>
+                <Member Name="Red" Value="1"/>
+                <Member Name="Blue" Value="2"/>
+                <Member Name="Green" Value="3"/>
+            </EnumType>
+        </Schema>
+        <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="DemoService">
+            <Action Name="DemoAction" IsBound="true">
+                <Parameter Name="bindingParameter" Type="DemoService.Models.Product"/>
+                <ReturnType Type="Edm.Int32" Nullable="true"/>
+            </Action>
+            <Action Name="DemoActionWithParameters" IsBound="true">
+                <Parameter Name="bindingParameter" Type="DemoService.Models.Product"/>
+                <Parameter Name="Name" Type="Edm.String"/>
+                <Parameter Name="Price" Type="Edm.Decimal" Nullable="false"/>
+                <ReturnType Type="Edm.Int32" Nullable="true"/>
+            </Action>
+            <Action Name="DemoUnboundAction">
+                <ReturnType Type="Edm.Int32" Nullable="true"/>
+            </Action>
+            <Function Name="DemoFunction" IsBound="true">
+                <Parameter Name="bindingParameter" Type="DemoService.Models.Product"/>
+                <ReturnType Type="Edm.Int32" Nullable="true"/>
+            </Function>
+            <EntityContainer Name="Container">
+                <EntitySet Name="Products" EntityType="DemoService.Models.Product"/>
+                <EntitySet Name="Manufacturers" EntityType="DemoService.Models.Manufacturer"/>
+                <EntitySet Name="Product_Manufacturer_Sales" EntityType="DemoService.Models.ProductManufacturerSales"/>
+                <FunctionImport Name="DemoUnboundAction" Function="DemoService.DemoUnboundAction" IncludeInServiceDocument="true"/>
+            </EntityContainer>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

@@ -44,6 +44,33 @@ class TestSimpleObjectManipulation(unittest.TestCase):
 
         assert new_product.id is not None, 'Product.id is not set'
 
+    def test_create_with_primary_key(self):
+        # Post call ###########################################################
+        def request_callback(request):
+            payload = json.loads(request.body)
+            self.assertEqual(payload.get('ProductID'), 55,
+                             msg='Did not receive ProductID')
+            resp_body = payload
+            headers = {}
+            return requests.codes.created, headers, json.dumps(resp_body)
+
+        new_product = Product()
+        new_product.id = 55
+        new_product.name = u'New Test Product'
+        new_product.category = u'Category #1'
+        new_product.price = 34.5
+
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.POST, Product.__odata_url__(),
+                callback=request_callback,
+                content_type='application/json',
+            )
+
+            Service.save(new_product)
+
+        assert new_product.id is not None, 'Product.id is not set'
+
     def test_create_deep_inserts(self):
         # Initial part data ###################################################
         def request_callback_part(request):

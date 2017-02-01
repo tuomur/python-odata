@@ -3,6 +3,7 @@
 from odata import ODataService
 from odata.property import StringProperty, IntegerProperty, DecimalProperty, \
     NavigationProperty, DatetimeProperty
+from odata.enumtype import EnumType, EnumTypeProperty
 
 url = 'http://unittest.server.local/odata/'
 Service = ODataService(url)
@@ -33,18 +34,27 @@ class DemoFunction(Service.Function):
     parameters = {}
 
 
-class Product(Service.Base):
+class ColorSelection(EnumType):
+    Black = 0
+    Red = 1
+    Blue = 2
+    Green = 3
+
+
+class Product(Service.Entity):
     id = IntegerProperty('ProductID', primary_key=True)
     name = StringProperty('ProductName')
     category = StringProperty('Category')
     price = DecimalProperty('Price')
+    color_selection = EnumTypeProperty('ColorSelection',
+                                       enum_class=ColorSelection)
 
     DemoAction = DemoAction()
     DemoActionWithParameters = DemoActionWithParameters()
     DemoFunction = DemoFunction()
 
 
-class ProductPart(Service.Base):
+class ProductPart(Service.Entity):
     __odata_type__ = 'ODataTest.Objects.ProductPart'
     __odata_collection__ = 'ProductParts'
     id = IntegerProperty('PartID', primary_key=True)
@@ -53,7 +63,7 @@ class ProductPart(Service.Base):
     product_id = IntegerProperty('ProductID')
 
 
-class Manufacturer(Service.Base):
+class Manufacturer(Service.Entity):
     __odata_type__ = 'ODataTest.Objects.Manufacturer'
     __odata_collection__ = 'Manufacturers'
 
@@ -72,3 +82,12 @@ class ProductWithNavigation(Product):
     parts = NavigationProperty('Parts', ProductPart, collection=True)
 
 ProductPart.product = NavigationProperty('Product', ProductWithNavigation, foreign_key=ProductPart.product_id)
+
+
+class ProductManufacturerSales(Service.Entity):
+    __odata_type__ = 'ODataTest.Objects.ProductManufacturerSales'
+    __odata_collection__ = 'Product_Manufacturer_Sales'
+
+    product_id = IntegerProperty('ProductID', primary_key=True)
+    manufacturer_id = IntegerProperty('ManufacturerID', primary_key=True)
+    sales_amount = DecimalProperty('SalesAmount')
