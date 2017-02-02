@@ -1,5 +1,119 @@
 # -*- coding: utf-8 -*-
 
+"""
+Actions, Functions
+==================
+
+Actions and Functions are set up automatically when using reflection. Unbound
+callables are collected in :py:attr:`~odata.service.ODataService.actions` and
+:py:attr:`~odata.service.ODataService.functions`. Bound callables are assigned
+to the Entity classes they are bound to.
+
+.. code-block:: python
+
+    >>> from odata import ODataService
+    >>> Service = ODataService(url, reflect_entities=True)
+    >>> Product = Service.entities['Product']
+
+    >>> prod = Service.query(Product).get(1234)
+    >>> prod.GetAvailabilityDate()
+    datetime.datetime(2018, 6, 1, 12, 0, 0)
+
+    >>> import datetime
+    >>> GetExampleDecimal = Service.functions['GetExampleDecimal']
+    >>> GetExampleDecimal(Date=datetime.datetime.now())
+    Decimal('34.0')
+
+
+Unbound action/functions
+------------------------
+
+Similar to Entities, Functions are subclassed from the Service baseclasses
+:py:attr:`~odata.service.ODataService.Action` and
+:py:attr:`~odata.service.ODataService.Function`:
+
+.. code-block:: python
+
+    Service = ODataService(url)
+
+    class _GetExampleDecimal(Service.Function):
+        name = 'GetExampleDecimal'
+        parameters = dict(
+            Date=DatetimeProperty,
+        )
+        return_type = DecimalProperty
+
+    GetExampleDecimal = _GetExampleDecimal()
+
+Usage:
+
+.. code-block:: python
+
+    >>> import datetime
+    >>> # calls GET http://service/GetExampleDecimal(Date=2017-01-01T12:00:00Z)
+    >>> GetExampleDecimal(Date=datetime.datetime.now())
+    Decimal('34.0')
+
+
+Bound action/function
+---------------------
+
+Bound functions are otherwise the same, but the instanced object should be set
+under the Entity it belongs to:
+
+.. code-block:: python
+
+    class _GetAvailabilityDate(Service.Function):
+        name = 'ODataService.GetAvailabilityDate'
+        parameters = dict()
+        return_type = DatetimeProperty
+
+    class _RemoveAllReservations(Service.Action):
+        name = 'ODataService.RemoveAllReservations'
+        parameters = dict()
+        return_type = BooleanProperty
+
+    class _ReserveAmount(Service.Action):
+        name = 'ODataService.ReserveAmount'
+        parameters = dict(
+            Amount=DecimalProperty,
+        )
+        return_type = BooleanProperty
+
+    class Product(Service.Entity):
+        Id = IntegerProperty('Id', primary_key=True)
+        Name = StringProperty('Name')
+
+        GetAvailabilityDate = GetAvailabilityDate()
+        RemoveAllReservations = _RemoveAllReservations()
+        ReserveAmount = _ReserveAmount()
+
+Usage:
+
+.. code-block:: python
+
+    >>> # collection bound Action. calls POST http://service/Product/ODataService.RemoveAllReservations
+    >>> Product.RemoveAllReservations()
+    True
+
+    >>> # if the Action is instance bound, call the Action from the Product instance instead
+    >>> from decimal import Decimal
+    >>> prod = Service.query(Product).get(1234)
+    >>> # calls POST http://service/Product(1234)/ODataService.ReserveAmount
+    >>> prod.ReserveAmount(Amount=Decimal('5.0'))
+    True
+
+    >>> # calls GET http://service/Product(1234)/ODataService.GetAvailabilityDate()
+    >>> prod.GetAvailabilityDate()
+    datetime.datetime(2018, 6, 1, 12, 0, 0)
+
+
+----
+
+API
+---
+"""
+
 try:
     # noinspection PyUnresolvedReferences
     from urllib.parse import urljoin
@@ -25,11 +139,18 @@ class ActionBase(object):
     A dictionary that defines what keyword arguments and what types this Action
     accepts. For example, ``dict(productId=IntegerProperty)``
 
-    :type name: dict
+    :type parameters: dict
     """
 
     return_type_collection = None
+    """
+    Reference to the returned value's type, when retuning multiple values.
+    Entity or Property class
+    """
     return_type = None
+    """
+    Reference to the returned value's type. Entity or Property class
+    """
 
     def __get__(self, instance, owner):
         # return a callable that acts on EntitySet or the Entity itself
@@ -121,6 +242,35 @@ class ActionBase(object):
 
 
 class Action(ActionBase):
+    """
+    Baseclass for all Actions. Should not be used directly, use the
+    subclass :py:class:`~odata.service.ODataService.Action` instead.
+
+    .. py:attribute:: name
+
+        Action's fully qualified name. Bound Actions are prefixed with their
+        schema's name (``SchemaName.ActionName``).
+        **Required when subclassing**
+
+    .. py:attribute:: parameters
+
+        Dictionary. Defines all the keyword arguments and their types the
+        Action can accept. Key names must match with ones accepted by the
+        server.
+        **Required when subclassing**
+
+    .. py:attribute:: return_type
+
+        Reference to either Entity class or Property class. Defines the return
+        value's type for this Action.
+        **Required when subclassing**
+
+    .. py:attribute:: return_type_collection
+
+        Reference to either Entity class or Property class. Defines the return
+        value's type for this Action when retuning multiple values.
+        **Required when subclassing**
+    """
 
     name = 'ODataSchema.Action'
 
@@ -136,6 +286,35 @@ class Action(ActionBase):
 
 
 class Function(ActionBase):
+    """
+    Baseclass for all Functions. Should not be used directly, use the
+    subclass :py:class:`~odata.service.ODataService.Function` instead.
+
+    .. py:attribute:: name
+
+        Function's fully qualified name. Function Actions are prefixed with
+        their schema's name (``SchemaName.FunctionName``).
+        **Required when subclassing**
+
+    .. py:attribute:: parameters
+
+        Dictionary. Defines all the keyword arguments and their types the
+        Function can accept. Key names must match with ones accepted by the
+        server.
+        **Required when subclassing**
+
+    .. py:attribute:: return_type
+
+        Reference to either Entity class or Property class. Defines the return
+        value's type for this Function.
+        **Required when subclassing**
+
+    .. py:attribute:: return_type_collection
+
+        Reference to either Entity class or Property class. Defines the return
+        value's type for this Function when retuning multiple values.
+        **Required when subclassing**
+    """
 
     name = 'ODataSchema.Function'
 

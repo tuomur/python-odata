@@ -7,8 +7,27 @@ Entity classes
 The data model can be created manually if you wish to use separate property
 names from the data keys, or define custom methods for your objects.
 
-Custom entity
--------------
+Custom Entity class
+-------------------
+
+Each Service instance has their separate base classes for Entities,
+Actions and Functions. Use them to define your model:
+
+.. code-block:: python
+
+    class Product(Service.Entity):
+        __odata_type__ = 'ProductDataService.Objects.Product'
+        __odata_collection__ = 'Products'
+
+        name = StringProperty('ProductName')
+        quantity_in_storage = IntegerProperty('QuantityInStorage')
+
+Note that the type (EntityType) and collection (EntitySet) must be defined.
+These are used in querying and saving data.
+
+
+Custom base class
+-----------------
 
 Define a base. These properties and methods are shared by all objects in the endpoint.
 
@@ -39,8 +58,6 @@ Define a model:
         def is_product_available(self):
             return self.quantity_in_storage > 0
 
-Note that the type (EntityType) and collection (EntitySet) must be defined.
-These are used in querying and saving data.
 
 Use the base to init :py:class:`~odata.service.ODataService`:
 
