@@ -119,6 +119,4 @@ class EntityBase(object):
 
 
 def declarative_base():
-    class Entity(EntityBase):
-        pass
-    return Entity
+    return type('Entity', (EntityBase,), dict())

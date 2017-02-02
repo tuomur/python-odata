@@ -80,24 +80,26 @@ class MetaData(object):
                 base_type = schema.get('base_type')
                 for entity in entities.values():
                     if entity.__odata_type__ == base_type:
-                        class Entity(entity):
-                            __odata_schema__ = schema
-                            __odata_type__ = schema['type']
-                        Entity.__name__ = schema['name']
+                        object_dict = dict(
+                            __odata_schema__=schema,
+                            __odata_type__=schema['type'],
+                        )
+                        entity_class = type(schema['name'], (entity,), object_dict)
+                        break
             else:
-                class Entity(entity_base_class):
-                    __odata_schema__ = schema
-                    __odata_type__ = schema['type']
-                    __odata_collection__ = collection_name
+                object_dict = dict(
+                    __odata_schema__=schema,
+                    __odata_type__=schema['type'],
+                    __odata_collection__=collection_name,
+                )
+                entity_class = type(entity_name, (entity_base_class,), object_dict)
 
-                Entity.__name__ = entity_name
-
-            all_types[schema['type']] = Entity
+            all_types[schema['type']] = entity_class
 
             for prop in schema.get('properties'):
                 prop_name = prop['name']
 
-                if hasattr(Entity, prop_name):
+                if hasattr(entity_class, prop_name):
                     # do not replace existing properties (from Base)
                     continue
 
@@ -112,9 +114,9 @@ class MetaData(object):
                         'is_collection': prop['is_collection'],
                     }
                     property_instance = type_(prop_name, **type_options)
-                setattr(Entity, prop_name, property_instance)
+                setattr(entity_class, prop_name, property_instance)
 
-            entities[entity_name] = Entity
+            entities[entity_name] = entity_class
 
     def _create_actions(self, entities, actions, get_entity_or_prop_from_type):
         for action in actions:
@@ -131,17 +133,19 @@ class MetaData(object):
             for param in action['parameters']:
                 parameters_dict[param['name']] = self.property_type_to_python(param['type'])
 
-            class _Action(self.service.Action):
-                __odata_service__ = self.service
-                name = action['fully_qualified_name']
-                parameters = parameters_dict
-                return_type = get_entity_or_prop_from_type(action['return_type'])
-                return_type_collection = get_entity_or_prop_from_type(action['return_type_collection'])
+            object_dict = dict(
+                __odata_service__=self.service,
+                name=action['fully_qualified_name'],
+                parameters=parameters_dict,
+                return_type=get_entity_or_prop_from_type(action['return_type']),
+                return_type_collection=get_entity_or_prop_from_type(action['return_type_collection'])
+            )
+            action_class = type(action['name'], (self.service.Action,), object_dict)
 
             if bind_entity:
-                setattr(bind_entity, action['name'], _Action())
+                setattr(bind_entity, action['name'], action_class())
             else:
-                self.service.actions[action['name']] = _Action()
+                self.service.actions[action['name']] = action_class()
 
     def _create_functions(self, entities, functions, get_entity_or_prop_from_type):
         for function in functions:
@@ -158,17 +162,19 @@ class MetaData(object):
             for param in function['parameters']:
                 parameters_dict[param['name']] = self.property_type_to_python(param['type'])
 
-            class _Function(self.service.Function):
-                __odata_service__ = self.service
-                name = function['fully_qualified_name']
-                parameters = parameters_dict
-                return_type = get_entity_or_prop_from_type(function['return_type'])
-                return_type_collection = get_entity_or_prop_from_type(function['return_type_collection'])
+            object_dict = dict(
+                __odata_service__=self.service,
+                name=function['fully_qualified_name'],
+                parameters=parameters_dict,
+                return_type=get_entity_or_prop_from_type(function['return_type']),
+                return_type_collection=get_entity_or_prop_from_type(function['return_type_collection'])
+            )
+            function_class = type(function['name'], (self.service.Function,), object_dict)
 
             if bind_entity:
-                setattr(bind_entity, function['name'], _Function())
+                setattr(bind_entity, function['name'], function_class())
             else:
-                self.service.functions[function['name']] = _Function()
+                self.service.functions[function['name']] = function_class()
 
     def get_entity_sets(self, base=None):
         document = self.load_document()

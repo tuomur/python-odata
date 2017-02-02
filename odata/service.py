@@ -91,11 +91,31 @@ class ODataService(object):
         :type entities: dict
         """
         self.actions = {}
+        """
+        A dictionary containing all the automatically created unbound Action
+        callables. Empty if the service is created with
+        ``reflect_entities=False``
+
+        :type actions: dict
+        """
         self.functions = {}
+        """
+        A dictionary containing all the automatically created unbound Function
+        callables. Empty if the service is created with
+        ``reflect_entities=False``
+
+        :type functions: dict
+        """
         self.types = {}
+        """
+        A dictionary containing all types (EntityType, EnumType) created
+        during reflection. Empty if the service is created with
+        ``reflect_entities=False``
+
+        :type types: dict
+        """
 
         self.metadata = MetaData(self)
-
         self.Base = base or declarative_base()
         """
         Entity base class. Either a custom one given in init or a generated one. Can be used to define entities
@@ -104,21 +124,25 @@ class ODataService(object):
         """
         self.Entity = self.Base  # alias
 
-        class _Action(Action):
-            __odata_service__ = self
+        self.Action = type('Action', (Action,), dict(__odata_service__=self))
+        """
+        A baseclass for this service's Actions
 
-        self.Action = _Action
+        :type Action: Action
+        """
 
-        class _Function(Function):
-            __odata_service__ = self
+        self.Function = type('Function', (Function,), dict(__odata_service__=self))
+        """
+        A baseclass for this service's Functions
 
-        self.Function = _Function
+        :type Function: Function
+        """
 
         if reflect_entities:
-            _, self.entities, self.types = self.metadata.get_entity_sets(base=self.Base)
+            _, self.entities, self.types = self.metadata.get_entity_sets(base=self.Entity)
 
-        self.Base.__odata_url_base__ = url
-        self.Base.__odata_service__ = self
+        self.Entity.__odata_url_base__ = url
+        self.Entity.__odata_service__ = self
 
     def __repr__(self):
         return u'<ODataService at {0}>'.format(self.url)
@@ -143,6 +167,7 @@ class ODataService(object):
         entity.__odata__.describe()
 
     def is_entity_saved(self, entity):
+        """Returns boolean indicating entity's status"""
         return self.default_context.is_entity_saved(entity)
 
     def query(self, entitycls):
