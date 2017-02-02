@@ -43,31 +43,34 @@ class MetaData(object):
     def property_type_to_python(self, edm_type):
         return self.property_types.get(edm_type, StringProperty)
 
-    def get_entity_sets(self, base=None):
-        document = self.load_document()
-        schemas, entity_sets, actions, functions = self.parse_document(document)
+    def _set_object_relationships(self, entities):
+        for entity in entities.values():
+            schema = entity.__odata_schema__
 
-        entities = {}
-        base_class = base or declarative_base()
-        all_types = {}
+            for schema_nav in schema.get('navigation_properties', []):
+                name = schema_nav['name']
+                type_ = schema_nav['type']
+                foreign_key = schema_nav['foreign_key']
 
-        subclasses = []
+                is_collection = False
+                if type_.startswith('Collection('):
+                    is_collection = True
+                    search_type = type_.lstrip('Collection(').strip(')')
+                else:
+                    search_type = type_
 
-        for schema in schemas:
-            for entity_type in schema.get('entities', []):
-                if entity_type.get('base_type'):
-                    subclasses.append({
-                        'name': entity_type['name'],
-                        'schema': entity_type,
-                    })
+                for _search_entity in entities.values():
+                    if _search_entity.__odata_schema__['type'] == search_type:
+                        nav = NavigationProperty(
+                            name,
+                            _search_entity,
+                            collection=is_collection,
+                            foreign_key=foreign_key,
+                        )
+                        setattr(entity, name, nav)
 
-        for schema in schemas:
-            for enum_type in schema['enum_types']:
-                names = [(i['name'], i['value']) for i in enum_type['members']]
-                created_enum = EnumType(enum_type['name'], names=names)
-                all_types[enum_type['fully_qualified_name']] = created_enum
-
-        for entity_set in entity_sets + subclasses:
+    def _create_entities(self, all_types, entities, entity_base_class, entities_and_subclasses):
+        for entity_set in entities_and_subclasses:
             schema = entity_set['schema']
             collection_name = entity_set['name']
 
@@ -82,7 +85,7 @@ class MetaData(object):
                             __odata_type__ = schema['type']
                         Entity.__name__ = schema['name']
             else:
-                class Entity(base_class):
+                class Entity(entity_base_class):
                     __odata_schema__ = schema
                     __odata_type__ = schema['type']
                     __odata_collection__ = collection_name
@@ -113,43 +116,7 @@ class MetaData(object):
 
             entities[entity_name] = Entity
 
-        # Set up relationships
-        for entity in entities.values():
-            schema = entity.__odata_schema__
-
-            for schema_nav in schema.get('navigation_properties', []):
-                name = schema_nav['name']
-                type_ = schema_nav['type']
-                foreign_key = schema_nav['foreign_key']
-
-                is_collection = False
-                if type_.startswith('Collection('):
-                    is_collection = True
-                    search_type = type_.lstrip('Collection(').strip(')')
-                else:
-                    search_type = type_
-
-                for _search_entity in entities.values():
-                    if _search_entity.__odata_schema__['type'] == search_type:
-                        nav = NavigationProperty(
-                            name,
-                            _search_entity,
-                            collection=is_collection,
-                            foreign_key=foreign_key,
-                        )
-                        setattr(entity, name, nav)
-
-        def get_entity_or_prop_from_type(typename):
-            if typename is None:
-                return
-
-            for entity in entities.values():
-                schema = entity.__odata_schema__
-                if schema['type'] == typename:
-                    return entity
-
-            return self.property_type_to_python(typename)
-
+    def _create_actions(self, entities, actions, get_entity_or_prop_from_type):
         for action in actions:
             entity_type = action['is_bound_to']
             bind_entity = None
@@ -176,6 +143,7 @@ class MetaData(object):
             else:
                 self.service.actions[action['name']] = _Action()
 
+    def _create_functions(self, entities, functions, get_entity_or_prop_from_type):
         for function in functions:
             entity_type = function['is_bound_to']
             bind_entity = None
@@ -202,11 +170,192 @@ class MetaData(object):
             else:
                 self.service.functions[function['name']] = _Function()
 
+    def get_entity_sets(self, base=None):
+        document = self.load_document()
+        schemas, entity_sets, actions, functions = self.parse_document(document)
+
+        entities = {}
+        base_class = base or declarative_base()
+        all_types = {}
+
+        subclasses = []
+
+        def get_entity_or_prop_from_type(typename):
+            if typename is None:
+                return
+
+            for entity in entities.values():
+                schema = entity.__odata_schema__
+                if schema['type'] == typename:
+                    return entity
+
+            return self.property_type_to_python(typename)
+
+        for schema in schemas:
+            for entity_type in schema.get('entities', []):
+                if entity_type.get('base_type'):
+                    subclasses.append({
+                        'name': entity_type['name'],
+                        'schema': entity_type,
+                    })
+
+        for schema in schemas:
+            for enum_type in schema['enum_types']:
+                names = [(i['name'], i['value']) for i in enum_type['members']]
+                created_enum = EnumType(enum_type['name'], names=names)
+                all_types[enum_type['fully_qualified_name']] = created_enum
+
+        self._create_entities(all_types, entities, base_class, entity_sets + subclasses)
+        self._set_object_relationships(entities)
+        self._create_actions(entities, actions, get_entity_or_prop_from_type)
+        self._create_functions(entities, functions, get_entity_or_prop_from_type)
+
         return base_class, entities, all_types
 
     def load_document(self):
         response = self.connection._do_get(self.url)
         return ET.fromstring(response.content)
+
+    def _parse_action(self, xmlq, action_element, schema_name):
+        action = {
+            'name': action_element.attrib['Name'],
+            'fully_qualified_name': action_element.attrib['Name'],
+            'is_bound': action_element.attrib.get('IsBound') == 'true',
+            'is_bound_to': None,
+            'parameters': [],
+            'return_type': None,
+            'return_type_collection': None,
+        }
+
+        if action['is_bound']:
+            # bound actions are named SchemaNamespace.ActionName
+            action['fully_qualified_name'] = '.'.join([schema_name, action['name']])
+
+        for parameter_element in xmlq(action_element, 'edm:Parameter'):
+            parameter_name = parameter_element.attrib['Name']
+            if action['is_bound'] and parameter_name == 'bindingParameter':
+                action['is_bound_to'] = parameter_element.attrib['Type']
+                continue
+
+            parameter_type = parameter_element.attrib['Type']
+
+            action['parameters'].append({
+                'name': parameter_name,
+                'type': parameter_type,
+            })
+
+        for return_type_element in xmlq(action_element, 'edm:ReturnType'):
+            type_name = return_type_element.attrib['Type']
+            if 'Collection(' in type_name:
+                action['return_type_collection'] = type_name.lstrip(
+                    'Collection(').rstrip(')')
+            else:
+                action['return_type'] = type_name
+        return action
+
+    def _parse_function(self, xmlq, function_element, schema_name):
+        function = {
+            'name': function_element.attrib['Name'],
+            'fully_qualified_name': function_element.attrib['Name'],
+            'is_bound': function_element.attrib.get('IsBound') == 'true',
+            'is_bound_to': None,
+            'parameters': [],
+            'return_type': None,
+            'return_type_collection': None,
+        }
+
+        if function['is_bound']:
+            # bound functions are named SchemaNamespace.FunctionName
+            function['fully_qualified_name'] = '.'.join(
+                [schema_name, function['name']])
+
+        for parameter_element in xmlq(function_element, 'edm:Parameter'):
+            parameter_name = parameter_element.attrib['Name']
+            if function['is_bound'] and parameter_name == 'bindingParameter':
+                function['is_bound_to'] = parameter_element.attrib['Type']
+                continue
+
+            parameter_type = parameter_element.attrib['Type']
+
+            function['parameters'].append({
+                'name': parameter_name,
+                'type': parameter_type,
+            })
+
+        for return_type_element in xmlq(function_element, 'edm:ReturnType'):
+            type_name = return_type_element.attrib['Type']
+            if 'Collection(' in type_name:
+                function['return_type_collection'] = type_name.lstrip(
+                    'Collection(').rstrip(')')
+            else:
+                function['return_type'] = type_name
+        return function
+
+    def _parse_entity(self, xmlq, entity_element, schema_name):
+        entity_name = entity_element.attrib['Name']
+
+        entity_type_name = '.'.join([schema_name, entity_name])
+
+        entity = {
+            'name': entity_name,
+            'type': entity_type_name,
+            'properties': [],
+            'navigation_properties': [],
+        }
+
+        base_type = entity_element.attrib.get('BaseType')
+        if base_type:
+            base_type = base_type
+            entity['base_type'] = base_type
+
+        entity_pks = {}
+        for pk_property in xmlq(entity_element, 'edm:Key/edm:PropertyRef'):
+            pk_property_name = pk_property.attrib['Name']
+            entity_pks[pk_property_name] = 0
+
+        for entity_property in xmlq(entity_element, 'edm:Property'):
+            p_name = entity_property.attrib['Name']
+            p_type = entity_property.attrib['Type']
+
+            entity['properties'].append({
+                'name': p_name,
+                'type': p_type.lstrip('Collection(').rstrip(')'),
+                'is_primary_key': p_name in entity_pks,
+                'is_collection': p_type.startswith('Collection('),
+            })
+
+        for nav_property in xmlq(entity_element, 'edm:NavigationProperty'):
+            p_name = nav_property.attrib['Name']
+            p_type = nav_property.attrib['Type']
+            p_foreign_key = None
+
+            ref_constraint = xmlq(nav_property, 'edm:ReferentialConstraint')
+            if ref_constraint:
+                ref_constraint = ref_constraint[0]
+                p_foreign_key = ref_constraint.attrib['Property']
+
+            entity['navigation_properties'].append({
+                'name': p_name,
+                'type': p_type,
+                'foreign_key': p_foreign_key,
+            })
+        return entity
+
+    def _parse_enumtype(self, xmlq, enumtype_element, schema_name):
+        enum_name = enumtype_element.attrib['Name']
+        enum = {
+            'name': enum_name,
+            'fully_qualified_name': '.'.join([schema_name, enum_name]),
+            'members': []
+        }
+        for enum_member in xmlq(enumtype_element, 'edm:Member'):
+            member_name = enum_member.attrib['Name']
+            member_value = int(enum_member.attrib['Value'])
+            enum['members'].append({
+                'name': member_name,
+                'value': member_value,
+            })
+        return enum
 
     def parse_document(self, doc):
         schemas = []
@@ -232,70 +381,11 @@ class MetaData(object):
             }
 
             for enum_type in xmlq(schema, 'edm:EnumType'):
-                enum_name = enum_type.attrib['Name']
-                enum = {
-                    'name': enum_name,
-                    'fully_qualified_name': '.'.join([schema_name, enum_name]),
-                    'members': []
-                }
-                for enum_member in xmlq(enum_type, 'edm:Member'):
-                    member_name = enum_member.attrib['Name']
-                    member_value = int(enum_member.attrib['Value'])
-                    enum['members'].append({
-                        'name': member_name,
-                        'value': member_value,
-                    })
+                enum = self._parse_enumtype(xmlq, enum_type, schema_name)
                 schema_dict['enum_types'].append(enum)
 
             for entity_type in xmlq(schema, 'edm:EntityType'):
-                entity_name = entity_type.attrib['Name']
-
-                entity_type_name = '.'.join([schema_name, entity_name])
-
-                entity = {
-                    'name': entity_name,
-                    'type': entity_type_name,
-                    'properties': [],
-                    'navigation_properties': [],
-                }
-
-                base_type = entity_type.attrib.get('BaseType')
-                if base_type:
-                    base_type = base_type
-                    entity['base_type'] = base_type
-
-                entity_pks = {}
-                for pk_property in xmlq(entity_type, 'edm:Key/edm:PropertyRef'):
-                    pk_property_name = pk_property.attrib['Name']
-                    entity_pks[pk_property_name] = 0
-
-                for entity_property in xmlq(entity_type, 'edm:Property'):
-                    p_name = entity_property.attrib['Name']
-                    p_type = entity_property.attrib['Type']
-
-                    entity['properties'].append({
-                        'name': p_name,
-                        'type': p_type.lstrip('Collection(').rstrip(')'),
-                        'is_primary_key': p_name in entity_pks,
-                        'is_collection': p_type.startswith('Collection('),
-                    })
-
-                for nav_property in xmlq(entity_type, 'edm:NavigationProperty'):
-                    p_name = nav_property.attrib['Name']
-                    p_type = nav_property.attrib['Type']
-                    p_foreign_key = None
-
-                    ref_constraint = xmlq(nav_property, 'edm:ReferentialConstraint')
-                    if ref_constraint:
-                        ref_constraint = ref_constraint[0]
-                        p_foreign_key = ref_constraint.attrib['Property']
-
-                    entity['navigation_properties'].append({
-                        'name': p_name,
-                        'type': p_type,
-                        'foreign_key': p_foreign_key,
-                    })
-
+                entity = self._parse_entity(xmlq, entity_type, schema_name)
                 schema_dict['entities'].append(entity)
 
             schemas.append(schema_dict)
@@ -320,77 +410,11 @@ class MetaData(object):
                 container_sets.append(set_dict)
 
             for action_def in xmlq(schema, 'edm:Action'):
-                action = {
-                    'name': action_def.attrib['Name'],
-                    'fully_qualified_name': action_def.attrib['Name'],
-                    'is_bound': action_def.attrib.get('IsBound') == 'true',
-                    'is_bound_to': None,
-                    'parameters': [],
-                    'return_type': None,
-                    'return_type_collection': None,
-                }
-
-                if action['is_bound']:
-                    # bound actions are named SchemaNamespace.ActionName
-                    action['fully_qualified_name'] = '.'.join([schema_name, action['name']])
-
-                for def_parameter in xmlq(action_def, 'edm:Parameter'):
-                    parameter_name = def_parameter.attrib['Name']
-                    if action['is_bound'] and parameter_name == 'bindingParameter':
-                        action['is_bound_to'] = def_parameter.attrib['Type']
-                        continue
-
-                    parameter_type = def_parameter.attrib['Type']
-
-                    action['parameters'].append({
-                        'name': parameter_name,
-                        'type': parameter_type,
-                    })
-
-                for def_return_type in xmlq(action_def, 'edm:ReturnType'):
-                    type_name = def_return_type.attrib['Type']
-                    if 'Collection(' in type_name:
-                        action['return_type_collection'] = type_name.lstrip('Collection(').rstrip(')')
-                    else:
-                        action['return_type'] = type_name
-
+                action = self._parse_action(xmlq, action_def, schema_name)
                 actions.append(action)
 
             for function_def in xmlq(schema, 'edm:Function'):
-                function = {
-                    'name': function_def.attrib['Name'],
-                    'fully_qualified_name': function_def.attrib['Name'],
-                    'is_bound': function_def.attrib.get('IsBound') == 'true',
-                    'is_bound_to': None,
-                    'parameters': [],
-                    'return_type': None,
-                    'return_type_collection': None,
-                }
-
-                if function['is_bound']:
-                    # bound functions are named SchemaNamespace.FunctionName
-                    function['fully_qualified_name'] = '.'.join([schema_name, function['name']])
-
-                for def_parameter in xmlq(function_def, 'edm:Parameter'):
-                    parameter_name = def_parameter.attrib['Name']
-                    if function['is_bound'] and parameter_name == 'bindingParameter':
-                        function['is_bound_to'] = def_parameter.attrib['Type']
-                        continue
-
-                    parameter_type = def_parameter.attrib['Type']
-
-                    function['parameters'].append({
-                        'name': parameter_name,
-                        'type': parameter_type,
-                    })
-
-                for def_return_type in xmlq(function_def, 'edm:ReturnType'):
-                    type_name = def_return_type.attrib['Type']
-                    if 'Collection(' in type_name:
-                        function['return_type_collection'] = type_name.lstrip('Collection(').rstrip(')')
-                    else:
-                        function['return_type'] = type_name
-
+                function = self._parse_function(xmlq, function_def, schema_name)
                 functions.append(function)
 
         return schemas, container_sets, actions, functions
