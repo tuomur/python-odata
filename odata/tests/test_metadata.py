@@ -23,6 +23,11 @@ class TestMetadataImport(TestCase):
 
         self.assertIn('Product', Service.entities)
 
+        # non-entityset things should not be listed in entities
+        expected_keys = {'Product', 'ProductWithNavigation', 'Manufacturer',
+                         'ProductManufacturerSales'}
+        self.assertEqual(set(Service.entities.keys()), expected_keys)
+
         Product = Service.entities['Product']
         ProductWithNavigation = Service.entities['ProductWithNavigation']
 

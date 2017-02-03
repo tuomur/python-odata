@@ -58,6 +58,7 @@
             </Function>
             <EntityContainer Name="Container">
                 <EntitySet Name="Products" EntityType="DemoService.Models.Product"/>
+                <EntitySet Name="ProductsWithNavigation" EntityType="DemoService.Models.ProductWithNavigation"/>
                 <EntitySet Name="Manufacturers" EntityType="DemoService.Models.Manufacturer"/>
                 <EntitySet Name="Product_Manufacturer_Sales" EntityType="DemoService.Models.ProductManufacturerSales"/>
                 <FunctionImport Name="DemoUnboundAction" Function="DemoService.DemoUnboundAction" IncludeInServiceDocument="true"/>

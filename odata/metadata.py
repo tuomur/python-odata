@@ -10,7 +10,7 @@ except ImportError:
         raise ImportError('lxml required for Python versions older than 2.7')
     from xml.etree import ElementTree as ET
 
-from .entity import declarative_base
+from .entity import declarative_base, EntityBase
 from .property import StringProperty, IntegerProperty, DecimalProperty, \
     DatetimeProperty, BooleanProperty, NavigationProperty, UUIDProperty
 from .enumtype import EnumType, EnumTypeProperty
@@ -69,54 +69,61 @@ class MetaData(object):
                         )
                         setattr(entity, name, nav)
 
-    def _create_entities(self, all_types, entities, entity_base_class, entities_and_subclasses):
-        for entity_set in entities_and_subclasses:
-            schema = entity_set['schema']
-            collection_name = entity_set['name']
+    def _create_entities(self, all_types, entities, entity_sets, entity_base_class, schemas):
+        unparented_entities = []
+        for schema in schemas:
+            for entity_dict in schema.get('entities'):
+                entity_type = entity_dict['type']
+                entity_name = entity_dict['name']
 
-            entity_name = schema['name']
-
-            if schema.get('base_type'):
-                base_type = schema.get('base_type')
-                for entity in entities.values():
-                    if entity.__odata_type__ == base_type:
-                        object_dict = dict(
-                            __odata_schema__=schema,
-                            __odata_type__=schema['type'],
-                        )
-                        entity_class = type(schema['name'], (entity,), object_dict)
-                        break
-            else:
-                object_dict = dict(
-                    __odata_schema__=schema,
-                    __odata_type__=schema['type'],
-                    __odata_collection__=collection_name,
-                )
-                entity_class = type(entity_name, (entity_base_class,), object_dict)
-
-            all_types[schema['type']] = entity_class
-
-            for prop in schema.get('properties'):
-                prop_name = prop['name']
-
-                if hasattr(entity_class, prop_name):
-                    # do not replace existing properties (from Base)
+                if entity_type in all_types:
                     continue
 
-                property_type = all_types.get(prop['type'])
+                if entity_dict.get('base_type'):
+                    base_type = entity_dict.get('base_type')
+                    parent_entity_class = all_types.get(base_type)
+                    if parent_entity_class is None:
+                        unparented_entities.append(entity_type)
 
-                if property_type and issubclass(property_type, EnumType):
-                    property_instance = EnumTypeProperty(prop_name, enum_class=property_type)
+                    object_dict = dict(
+                        __odata_schema__=entity_dict,
+                        __odata_type__=entity_type,
+                    )
+                    entity_class = type(entity_name, (parent_entity_class,), object_dict)  # type: EntityBase
+                    if entity_class.__odata_collection__:
+                        entities[entity_name] = entity_class
                 else:
-                    type_ = self.property_type_to_python(prop['type'])
-                    type_options = {
-                        'primary_key': prop['is_primary_key'],
-                        'is_collection': prop['is_collection'],
-                    }
-                    property_instance = type_(prop_name, **type_options)
-                setattr(entity_class, prop_name, property_instance)
+                    collection_name = entity_sets.get(entity_type, {}).get('name')
+                    object_dict = dict(
+                        __odata_schema__=entity_dict,
+                        __odata_type__=entity_type,
+                        __odata_collection__=collection_name
+                    )
+                    entity_class = type(entity_name, (entity_base_class,), object_dict)
+                    if collection_name:
+                        entities[entity_name] = entity_class
 
-            entities[entity_name] = entity_class
+                all_types[entity_type] = entity_class
+
+                for prop in entity_dict.get('properties'):
+                    prop_name = prop['name']
+
+                    if hasattr(entity_class, prop_name):
+                        # do not replace existing properties (from Base)
+                        continue
+
+                    property_type = all_types.get(prop['type'])
+
+                    if property_type and issubclass(property_type, EnumType):
+                        property_instance = EnumTypeProperty(prop_name, enum_class=property_type)
+                    else:
+                        type_ = self.property_type_to_python(prop['type'])
+                        type_options = {
+                            'primary_key': prop['is_primary_key'],
+                            'is_collection': prop['is_collection'],
+                        }
+                        property_instance = type_(prop_name, **type_options)
+                    setattr(entity_class, prop_name, property_instance)
 
     def _create_actions(self, entities, actions, get_entity_or_prop_from_type):
         for action in actions:
@@ -184,8 +191,6 @@ class MetaData(object):
         base_class = base or declarative_base()
         all_types = {}
 
-        subclasses = []
-
         def get_entity_or_prop_from_type(typename):
             if typename is None:
                 return
@@ -198,20 +203,12 @@ class MetaData(object):
             return self.property_type_to_python(typename)
 
         for schema in schemas:
-            for entity_type in schema.get('entities', []):
-                if entity_type.get('base_type'):
-                    subclasses.append({
-                        'name': entity_type['name'],
-                        'schema': entity_type,
-                    })
-
-        for schema in schemas:
             for enum_type in schema['enum_types']:
                 names = [(i['name'], i['value']) for i in enum_type['members']]
                 created_enum = EnumType(enum_type['name'], names=names)
                 all_types[enum_type['fully_qualified_name']] = created_enum
 
-        self._create_entities(all_types, entities, base_class, entity_sets + subclasses)
+        self._create_entities(all_types, entities, entity_sets, base_class, schemas)
         self._set_object_relationships(entities)
         self._create_actions(entities, actions, get_entity_or_prop_from_type)
         self._create_functions(entities, functions, get_entity_or_prop_from_type)
@@ -311,7 +308,6 @@ class MetaData(object):
 
         base_type = entity_element.attrib.get('BaseType')
         if base_type:
-            base_type = base_type
             entity['base_type'] = base_type
 
         entity_pks = {}
@@ -365,7 +361,7 @@ class MetaData(object):
 
     def parse_document(self, doc):
         schemas = []
-        container_sets = []
+        container_sets = {}
         actions = []
         functions = []
 
@@ -413,7 +409,7 @@ class MetaData(object):
                         if entity.get('type') == set_type:
                             set_dict['schema'] = entity
 
-                container_sets.append(set_dict)
+                container_sets[set_type] = set_dict
 
             for action_def in xmlq(schema, 'edm:Action'):
                 action = self._parse_action(xmlq, action_def, schema_name)

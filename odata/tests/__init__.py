@@ -42,6 +42,9 @@ class ColorSelection(EnumType):
 
 
 class Product(Service.Entity):
+    __odata_type__ = 'ODataTest.Objects.Product'
+    __odata_collection__ = 'ProductParts'
+
     id = IntegerProperty('ProductID', primary_key=True)
     name = StringProperty('ProductName')
     category = StringProperty('Category')

@@ -88,13 +88,14 @@ from odata.state import EntityState
 
 class EntityBase(object):
     __odata_service__ = None
-    __odata_collection__ = 'Entities'
+    __odata_collection__ = None
     __odata_type__ = 'ODataSchema.Entity'
 
     @classmethod
     def __odata_url__(cls):
         # used by Query
-        return urljoin(cls.__odata_service__.url, cls.__odata_collection__)
+        if cls.__odata_collection__:
+            return urljoin(cls.__odata_service__.url, cls.__odata_collection__)
 
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)
