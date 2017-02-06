@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import sys
 has_lxml = False
 try:
@@ -18,6 +19,7 @@ from .enumtype import EnumType, EnumTypeProperty
 
 class MetaData(object):
 
+    log = logging.getLogger('odata.metadata')
     namespaces = {
         'edm': 'http://docs.oasis-open.org/odata/ns/edm',
         'edmx': 'http://docs.oasis-open.org/odata/ns/edmx'
@@ -43,6 +45,13 @@ class MetaData(object):
     def property_type_to_python(self, edm_type):
         return self.property_types.get(edm_type, StringProperty)
 
+    def _type_is_collection(self, typename):
+        if typename.startswith('Collection('):
+            stripped = typename.lstrip('Collection(').rstrip(')')
+            return True, stripped
+        else:
+            return False, typename
+
     def _set_object_relationships(self, entities):
         for entity in entities.values():
             schema = entity.__odata_schema__
@@ -52,15 +61,10 @@ class MetaData(object):
                 type_ = schema_nav['type']
                 foreign_key = schema_nav['foreign_key']
 
-                is_collection = False
-                if type_.startswith('Collection('):
-                    is_collection = True
-                    search_type = type_.lstrip('Collection(').strip(')')
-                else:
-                    search_type = type_
+                is_collection, type_ = self._type_is_collection(type_)
 
                 for _search_entity in entities.values():
-                    if _search_entity.__odata_schema__['type'] == search_type:
+                    if _search_entity.__odata_schema__['type'] == type_:
                         nav = NavigationProperty(
                             name,
                             _search_entity,
@@ -70,21 +74,14 @@ class MetaData(object):
                         setattr(entity, name, nav)
 
     def _create_entities(self, all_types, entities, entity_sets, entity_base_class, schemas):
-        unparented_entities = []
         for schema in schemas:
             for entity_dict in schema.get('entities'):
                 entity_type = entity_dict['type']
                 entity_name = entity_dict['name']
 
-                if entity_type in all_types:
-                    continue
-
                 if entity_dict.get('base_type'):
                     base_type = entity_dict.get('base_type')
                     parent_entity_class = all_types.get(base_type)
-                    if parent_entity_class is None:
-                        unparented_entities.append(entity_type)
-
                     object_dict = dict(
                         __odata_schema__=entity_dict,
                         __odata_type__=entity_type,
@@ -130,7 +127,7 @@ class MetaData(object):
             entity_type = action['is_bound_to']
             bind_entity = None
             if entity_type:
-                entity_type = entity_type.lstrip('Collection(').strip(')')
+                _, entity_type = self._type_is_collection(entity_type)
                 for entity in entities.values():
                     schema = entity.__odata_schema__
                     if schema['type'] == entity_type:
@@ -159,7 +156,7 @@ class MetaData(object):
             entity_type = function['is_bound_to']
             bind_entity = None
             if entity_type:
-                entity_type = entity_type.lstrip('Collection(').strip(')')
+                _, entity_type = self._type_is_collection(entity_type)
                 for entity in entities.values():
                     schema = entity.__odata_schema__
                     if schema['type'] == entity_type:
@@ -195,10 +192,9 @@ class MetaData(object):
             if typename is None:
                 return
 
-            for entity in entities.values():
-                schema = entity.__odata_schema__
-                if schema['type'] == typename:
-                    return entity
+            type_ = all_types.get(typename)
+            if type_ is not None:
+                return type_
 
             return self.property_type_to_python(typename)
 
@@ -213,9 +209,11 @@ class MetaData(object):
         self._create_actions(entities, actions, get_entity_or_prop_from_type)
         self._create_functions(entities, functions, get_entity_or_prop_from_type)
 
+        self.log.info('Loaded {0} entity sets, total {1} types'.format(len(entities), len(all_types)))
         return base_class, entities, all_types
 
     def load_document(self):
+        self.log.info('Loading metadata document: {0}'.format(self.url))
         response = self.connection._do_get(self.url)
         return ET.fromstring(response.content)
 
@@ -249,9 +247,9 @@ class MetaData(object):
 
         for return_type_element in xmlq(action_element, 'edm:ReturnType'):
             type_name = return_type_element.attrib['Type']
-            if 'Collection(' in type_name:
-                action['return_type_collection'] = type_name.lstrip(
-                    'Collection(').rstrip(')')
+            is_collection, type_name = self._type_is_collection(type_name)
+            if is_collection:
+                action['return_type_collection'] = type_name
             else:
                 action['return_type'] = type_name
         return action
@@ -287,9 +285,9 @@ class MetaData(object):
 
         for return_type_element in xmlq(function_element, 'edm:ReturnType'):
             type_name = return_type_element.attrib['Type']
-            if 'Collection(' in type_name:
-                function['return_type_collection'] = type_name.lstrip(
-                    'Collection(').rstrip(')')
+            is_collection, type_name = self._type_is_collection(type_name)
+            if is_collection:
+                function['return_type_collection'] = type_name
             else:
                 function['return_type'] = type_name
         return function
@@ -319,11 +317,12 @@ class MetaData(object):
             p_name = entity_property.attrib['Name']
             p_type = entity_property.attrib['Type']
 
+            is_collection, p_type = self._type_is_collection(p_type)
             entity['properties'].append({
                 'name': p_name,
-                'type': p_type.lstrip('Collection(').rstrip(')'),
+                'type': p_type,
                 'is_primary_key': p_name in entity_pks,
-                'is_collection': p_type.startswith('Collection('),
+                'is_collection': is_collection,
             })
 
         for nav_property in xmlq(entity_element, 'edm:NavigationProperty'):
