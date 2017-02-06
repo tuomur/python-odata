@@ -126,8 +126,9 @@ class MetaData(object):
         for action in actions:
             entity_type = action['is_bound_to']
             bind_entity = None
+            bound_to_collection = False
             if entity_type:
-                _, entity_type = self._type_is_collection(entity_type)
+                bound_to_collection, entity_type = self._type_is_collection(entity_type)
                 for entity in entities.values():
                     schema = entity.__odata_schema__
                     if schema['type'] == entity_type:
@@ -142,7 +143,8 @@ class MetaData(object):
                 name=action['fully_qualified_name'],
                 parameters=parameters_dict,
                 return_type=get_entity_or_prop_from_type(action['return_type']),
-                return_type_collection=get_entity_or_prop_from_type(action['return_type_collection'])
+                return_type_collection=get_entity_or_prop_from_type(action['return_type_collection']),
+                bound_to_collection=bound_to_collection,
             )
             action_class = type(action['name'], (self.service.Action,), object_dict)
 
@@ -155,8 +157,9 @@ class MetaData(object):
         for function in functions:
             entity_type = function['is_bound_to']
             bind_entity = None
+            bound_to_collection = False
             if entity_type:
-                _, entity_type = self._type_is_collection(entity_type)
+                bound_to_collection, entity_type = self._type_is_collection(entity_type)
                 for entity in entities.values():
                     schema = entity.__odata_schema__
                     if schema['type'] == entity_type:
@@ -171,7 +174,8 @@ class MetaData(object):
                 name=function['fully_qualified_name'],
                 parameters=parameters_dict,
                 return_type=get_entity_or_prop_from_type(function['return_type']),
-                return_type_collection=get_entity_or_prop_from_type(function['return_type_collection'])
+                return_type_collection=get_entity_or_prop_from_type(function['return_type_collection']),
+                bound_to_collection=bound_to_collection,
             )
             function_class = type(function['name'], (self.service.Function,), object_dict)
 

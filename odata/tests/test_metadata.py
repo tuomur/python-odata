@@ -32,8 +32,10 @@ class TestMetadataImport(TestCase):
         ProductWithNavigation = Service.entities['ProductWithNavigation']
 
         assert issubclass(Product, EntityBase)
-        assert hasattr(Product, 'DemoAction')
-        assert hasattr(Product, 'DemoActionWithParameters')
+        assert hasattr(Product, 'DemoCollectionAction')
+
+        test_product = Product()
+        assert hasattr(test_product, 'DemoActionWithParameters')
         assert hasattr(ProductWithNavigation, 'Manufacturer')
         self.assertIn('Manufacturer', Service.entities)
 

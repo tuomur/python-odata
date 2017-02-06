@@ -15,9 +15,9 @@ class TestActions(unittest.TestCase):
     def test_call_bound_action_empty_result(self):
         with responses.RequestsMock() as rsps:
             rsps.add(
-                rsps.POST, Product.__odata_url__() + '/ODataTest.DemoAction',
+                rsps.POST, Product.__odata_url__() + '/ODataTest.DemoCollectionAction',
             )
-            result = Product.DemoAction()
+            result = Product.DemoCollectionAction()
         self.assertIsNone(result)
 
     def test_call_bound_action_on_instance(self):
@@ -33,14 +33,19 @@ class TestActions(unittest.TestCase):
             result = test_product.DemoAction()
         self.assertIsNone(result)
 
+    def test_call_instance_bound_action_on_collection(self):
+        def _call():
+            Product.DemoAction()
+        self.assertRaises(AttributeError, _call)
+
     def test_call_bound_action_with_result(self):
         with responses.RequestsMock() as rsps:
             rsps.add(
-                rsps.POST, Product.__odata_url__() + '/ODataTest.DemoAction',
+                rsps.POST, Product.__odata_url__() + '/ODataTest.DemoCollectionAction',
                 content_type='application/json',
                 json=dict(value='test'),
             )
-            result = Product.DemoAction()
+            result = Product.DemoCollectionAction()
         self.assertEqual(result, 'test')
 
     def test_call_unbound_action_with_result(self):
@@ -86,6 +91,14 @@ class TestFunctions(unittest.TestCase):
             )
             result = Product.DemoFunction()
         self.assertIsNone(result)
+
+    def test_collection_bound_function_on_instance(self):
+        test_product = Product()
+
+        def _call():
+            test_product.DemoFunction()
+
+        self.assertRaises(AttributeError, _call)
 
     def test_call_function_with_result_query(self):
         def request_callback(request):

@@ -152,8 +152,23 @@ class ActionBase(object):
     Reference to the returned value's type. Entity or Property class
     """
 
+    bound_to_collection = False
+    """
+    Action is bound to Entity collection. If True, Action is not available in
+    Entity class instances. If False, Action is not available in Entity class
+    objects
+    """
+
     def __get__(self, instance, owner):
         # return a callable that acts on EntitySet or the Entity itself
+
+        if self.bound_to_collection and instance is not None:
+            # called from instance when bound to collection
+            raise AttributeError()
+        if self.bound_to_collection is False and instance is None:
+            # called from class object when bound to instance
+            raise AttributeError()
+
         url = None
         if instance:
             # /MyEntity(1234)/SchemaName.ActionName
@@ -270,6 +285,12 @@ class Action(ActionBase):
         Reference to either Entity class or Property class. Defines the return
         value's type for this Action when retuning multiple values.
         **Required when subclassing**
+
+    .. py:attribute:: bound_to_collection
+
+        Action is bound to Entity collection. If True, Action is not available
+        in Entity class instances. If False, Action is not available in Entity
+        class objects. Defaults to *false*
     """
 
     name = 'ODataSchema.Action'
@@ -314,6 +335,12 @@ class Function(ActionBase):
         Reference to either Entity class or Property class. Defines the return
         value's type for this Function when retuning multiple values.
         **Required when subclassing**
+
+    .. py:attribute:: bound_to_collection
+
+        Function is bound to Entity collection. If True, Function is not
+        available in Entity class instances. If False, Function is not
+        available in Entity class objects. Defaults to *false*
     """
 
     name = 'ODataSchema.Function'

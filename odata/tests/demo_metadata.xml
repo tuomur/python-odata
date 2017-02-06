@@ -43,6 +43,10 @@
                 <Parameter Name="bindingParameter" Type="DemoService.Models.Product"/>
                 <ReturnType Type="Edm.Int32" Nullable="true"/>
             </Action>
+            <Action Name="DemoCollectionAction" IsBound="true">
+                <Parameter Name="bindingParameter" Type="Collection(DemoService.Models.Product)"/>
+                <ReturnType Type="Edm.Int32" Nullable="true"/>
+            </Action>
             <Action Name="DemoActionWithParameters" IsBound="true">
                 <Parameter Name="bindingParameter" Type="DemoService.Models.Product"/>
                 <Parameter Name="Name" Type="Edm.String"/>

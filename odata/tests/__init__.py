@@ -15,11 +15,18 @@ class DemoActionWithParameters(Service.Action):
         Name=StringProperty,
         Price=DecimalProperty,
     )
+    bound_to_collection = True
 
 
 class DemoAction(Service.Action):
     name = 'ODataTest.DemoAction'
     parameters = {}
+
+
+class DemoCollectionAction(Service.Action):
+    name = 'ODataTest.DemoCollectionAction'
+    parameters = {}
+    bound_to_collection = True
 
 
 class _DemoUnboundAction(Service.Action):
@@ -32,6 +39,7 @@ DemoUnboundAction = _DemoUnboundAction()
 class DemoFunction(Service.Function):
     name = 'ODataTest.DemoFunction'
     parameters = {}
+    bound_to_collection = True
 
 
 class ColorSelection(EnumType):
@@ -53,6 +61,7 @@ class Product(Service.Entity):
                                        enum_class=ColorSelection)
 
     DemoAction = DemoAction()
+    DemoCollectionAction = DemoCollectionAction()
     DemoActionWithParameters = DemoActionWithParameters()
     DemoFunction = DemoFunction()
 
