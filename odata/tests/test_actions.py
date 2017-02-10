@@ -26,6 +26,9 @@ class TestActions(unittest.TestCase):
         test_product.id = 1234
         test_product.price = decimal.Decimal('20.0')
 
+        # shortcut for saving the entity
+        test_product.__odata__.persisted = True
+
         with responses.RequestsMock() as rsps:
             rsps.add(
                 rsps.POST, test_product.__odata__.instance_url + '/ODataTest.DemoAction',
@@ -115,4 +118,4 @@ class TestFunctions(unittest.TestCase):
 
             query = Service.query(Product)
             query = query.filter(Product.name == 'testtest')
-            Product.DemoFunction(query)
+            Product.DemoFunction.with_query(query)()

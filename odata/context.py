@@ -37,6 +37,7 @@ class Context:
         self.log.info(u'Deleting entity: {0}'.format(entity))
         url = entity.__odata__.instance_url
         self.connection.execute_delete(url)
+        entity.__odata__.persisted = False
         self.log.info(u'Success')
 
     def save(self, entity, force_refresh=True):

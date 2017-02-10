@@ -35,6 +35,8 @@ class TestMetadataImport(TestCase):
         assert hasattr(Product, 'DemoCollectionAction')
 
         test_product = Product()
+        # shortcut for saving the entity
+        test_product.__odata__.persisted = True
         assert hasattr(test_product, 'DemoActionWithParameters')
         assert hasattr(ProductWithNavigation, 'Manufacturer')
         self.assertIn('Manufacturer', Service.entities)

@@ -123,6 +123,33 @@ except ImportError:
 from collections import OrderedDict
 
 
+class ActionCallable(object):
+    """
+    A helper class for ActionBase, representing a callable
+    """
+    def __init__(self, actionbase_instance, url, errmsg=None):
+        self.actionbase_instance = actionbase_instance
+        self.url = url
+        self.errmsg = errmsg
+        self.query = None
+
+    def __repr__(self):
+        name = self.actionbase_instance.name
+        url = self.url + '/' + name
+        return '<Callable for {0}>'.format(url)
+
+    def with_query(self, query):
+        self.query = query
+        return self
+
+    def __call__(self, **kwargs):
+        if self.errmsg is not None:
+            raise AttributeError(self.errmsg)
+
+        connection = self.actionbase_instance._get_context_or_default_connection(kwargs)
+        return self.actionbase_instance._callable(connection, self.url, self.query, **kwargs)
+
+
 class ActionBase(object):
 
     __odata_service__ = None
@@ -162,12 +189,18 @@ class ActionBase(object):
     def __get__(self, instance, owner):
         # return a callable that acts on EntitySet or the Entity itself
 
+        errmsg = None
         if self.bound_to_collection and instance is not None:
-            # called from instance when bound to collection
-            raise AttributeError()
-        if self.bound_to_collection is False and instance is None:
-            # called from class object when bound to instance
-            raise AttributeError()
+            errmsg = '{0} is bound to collection {1}'.format(self.name, owner)
+        if self.bound_to_collection is False:
+            if instance is None:
+                errmsg = '{0} is bound to instances of {1}'.format(self.name, owner)
+            else:
+                es = instance.__odata__
+                if es.persisted is False:
+                    errmsg = ('Trying to call instance bound Action or '
+                              'Function \'{0}\', but instance {1} is not saved'
+                              ''.format(self.name, instance))
 
         url = None
         if instance:
@@ -177,24 +210,15 @@ class ActionBase(object):
         # default to /MyEntity/SchemaName.ActionName
         url = url or owner.__odata_url__()
 
-        def call(*args, **kwargs):
-            query = None
-            if len(args) > 0:
-                query = args[0]
+        ac = ActionCallable(self, url, errmsg=errmsg)
+        return ac
 
-            connection = self._get_context_or_default_connection(kwargs)
-            return self._callable(connection, url, query, **kwargs)
-
-        return call
-
-    def __call__(self, *args, **kwargs):
-        query = None
-        if len(args) > 0:
-            query = args[0]
-
-        connection = self._get_context_or_default_connection(kwargs)
+    def __call__(self, **kwargs):
         url = self.__odata_service__.url
-        return self._callable(connection, url, query, **kwargs)
+        ac = ActionCallable(self, url)
+        # call immediately, otherwise user needs to double-call. this removes
+        # the ability to query results
+        return ac(**kwargs)
 
     def _get_context_or_default_connection(self, kwargs):
         connection = kwargs.pop('__connection__', None)
