@@ -148,9 +148,11 @@ class PropertyBase(object):
         Called when escaping the property value for usage in Query string.
         Implement this method when creating a new Property class
 
-        :param value: Value of this propery
+        :param value: Value of this property
         :return: Escaped value that can be used in Query string
         """
+        if value is None:
+            return 'null'
         return value
 
     def asc(self):
@@ -214,6 +216,8 @@ class StringProperty(PropertyBase):
         return value
 
     def escape_value(self, value):
+        if value is None:
+            return 'null'
         return u"'{0}'".format(value.replace("'", "''"))
 
 
@@ -249,6 +253,11 @@ class DecimalProperty(PropertyBase):
     Property that stores a decimal value. JSON does not support this directly,
     so the value will be transmitted as a float
     """
+    def escape_value(self, value):
+        if value is None:
+            return 'null'
+        return str(value)
+
     def serialize(self, value):
         if value is not None:
             return float(value)
@@ -264,6 +273,8 @@ class DatetimeProperty(PropertyBase):
     natively so dates are transmitted as ISO-8601 formatted strings
     """
     def escape_value(self, value):
+        if value is None:
+            return 'null'
         return value.isoformat()
 
     def serialize(self, value):
@@ -292,4 +303,6 @@ class UUIDProperty(StringProperty):
         return str(value)
 
     def escape_value(self, value):
+        if value is None:
+            return 'null'
         return str(value)
