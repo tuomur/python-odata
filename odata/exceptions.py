@@ -39,6 +39,13 @@ class ODataQueryError(ODataError):
     pass
 
 
+class ODataReflectionError(ODataError):
+    """
+    Raised when MetaData is unable to reflect types
+    """
+    pass
+
+
 class NoResultsFound(ODataQueryError):
     """
     Raised when :py:func:`~odata.query.Query.one` is called but zero results

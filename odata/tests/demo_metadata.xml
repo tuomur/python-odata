@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Version="4.0">
     <edmx:DataServices>
-        <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="DemoService.Models">
+        <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="DemoService.Models" Alias="d">
+            <EntityType Name="ProductWithNavigation" BaseType="d.Product">
+                <Property Name="ManufacturerID" Type="Edm.Int32" Nullable="false"/>
+                <NavigationProperty Name="Manufacturer" Type="d.Manufacturer"/>
+            </EntityType>
             <EntityType Name="Product">
                 <Key>
                     <PropertyRef Name="ProductID"/>
@@ -10,11 +14,7 @@
                 <Property Name="Name" Type="Edm.String"/>
                 <Property Name="Category" Type="Edm.String"/>
                 <Property Name="Price" Type="Edm.Decimal"/>
-                <Property Name="ColorSelection" Type="DemoService.Models.ColorSelection"/>
-            </EntityType>
-            <EntityType Name="ProductWithNavigation" BaseType="DemoService.Models.Product">
-                <Property Name="ManufacturerID" Type="Edm.Int32" Nullable="false"/>
-                <NavigationProperty Name="Manufacturer" Type="DemoService.Models.Manufacturer"/>
+                <Property Name="ColorSelection" Type="d.ColorSelection"/>
             </EntityType>
             <EntityType Name="Manufacturer">
                 <Key>
@@ -40,15 +40,15 @@
         </Schema>
         <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="DemoService">
             <Action Name="DemoAction" IsBound="true">
-                <Parameter Name="bindingParameter" Type="DemoService.Models.Product"/>
+                <Parameter Name="bindingParameter" Type="d.Product"/>
                 <ReturnType Type="Edm.Int32" Nullable="true"/>
             </Action>
             <Action Name="DemoCollectionAction" IsBound="true">
-                <Parameter Name="bindingParameter" Type="Collection(DemoService.Models.Product)"/>
+                <Parameter Name="bindingParameter" Type="Collection(d.Product)"/>
                 <ReturnType Type="Edm.Int32" Nullable="true"/>
             </Action>
             <Action Name="DemoActionWithParameters" IsBound="true">
-                <Parameter Name="bindingParameter" Type="DemoService.Models.Product"/>
+                <Parameter Name="bindingParameter" Type="d.Product"/>
                 <Parameter Name="Name" Type="Edm.String"/>
                 <Parameter Name="Price" Type="Edm.Decimal" Nullable="false"/>
                 <ReturnType Type="Edm.Int32" Nullable="true"/>
@@ -57,14 +57,14 @@
                 <ReturnType Type="Edm.Int32" Nullable="true"/>
             </Action>
             <Function Name="DemoFunction" IsBound="true">
-                <Parameter Name="bindingParameter" Type="DemoService.Models.Product"/>
+                <Parameter Name="bindingParameter" Type="d.Product"/>
                 <ReturnType Type="Edm.Int32" Nullable="true"/>
             </Function>
             <EntityContainer Name="Container">
-                <EntitySet Name="Products" EntityType="DemoService.Models.Product"/>
-                <EntitySet Name="ProductsWithNavigation" EntityType="DemoService.Models.ProductWithNavigation"/>
-                <EntitySet Name="Manufacturers" EntityType="DemoService.Models.Manufacturer"/>
-                <EntitySet Name="Product_Manufacturer_Sales" EntityType="DemoService.Models.ProductManufacturerSales"/>
+                <EntitySet Name="Products" EntityType="d.Product"/>
+                <EntitySet Name="ProductsWithNavigation" EntityType="d.ProductWithNavigation"/>
+                <EntitySet Name="Manufacturers" EntityType="d.Manufacturer"/>
+                <EntitySet Name="Product_Manufacturer_Sales" EntityType="d.ProductManufacturerSales"/>
                 <FunctionImport Name="DemoUnboundAction" Function="DemoService.DemoUnboundAction" IncludeInServiceDocument="true"/>
             </EntityContainer>
         </Schema>

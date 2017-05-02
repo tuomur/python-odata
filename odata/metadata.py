@@ -12,6 +12,7 @@ except ImportError:
     from xml.etree import ElementTree as ET
 
 from .entity import declarative_base, EntityBase
+from .exceptions import ODataReflectionError
 from .property import StringProperty, IntegerProperty, DecimalProperty, \
     DatetimeProperty, BooleanProperty, NavigationProperty, UUIDProperty
 from .enumtype import EnumType, EnumTypeProperty
@@ -73,15 +74,25 @@ class MetaData(object):
                         )
                         setattr(entity, name, nav)
 
-    def _create_entities(self, all_types, entities, entity_sets, entity_base_class, schemas):
+    def _create_entities(self, all_types, entities, entity_sets, entity_base_class, schemas, depth=1):
+        orphan_entities = []
         for schema in schemas:
             for entity_dict in schema.get('entities'):
                 entity_type = entity_dict['type']
                 entity_name = entity_dict['name']
 
+                if entity_type in all_types:
+                    continue
+
                 if entity_dict.get('base_type'):
                     base_type = entity_dict.get('base_type')
                     parent_entity_class = all_types.get(base_type)
+
+                    if parent_entity_class is None:
+                        # base class not yet created
+                        orphan_entities.append(entity_type)
+                        continue
+
                     object_dict = dict(
                         __odata_schema__=entity_dict,
                         __odata_type__=entity_type,
@@ -121,6 +132,14 @@ class MetaData(object):
                         }
                         property_instance = type_(prop_name, **type_options)
                     setattr(entity_class, prop_name, property_instance)
+
+        if len(orphan_entities) > 0:
+            if depth > 10:
+                errmsg = ('Types could not be resolved. '
+                          'Orphaned types: {0}').format(', '.join(orphan_entities))
+                raise ODataReflectionError(errmsg)
+            depth += 1
+            self._create_entities(all_types, entities, entity_sets, entity_base_class, schemas, depth)
 
     def _create_actions(self, entities, actions, get_entity_or_prop_from_type):
         for action in actions:
@@ -376,7 +395,7 @@ class MetaData(object):
                 return node.findall(xpath, namespaces=self.namespaces)
 
         for schema in xmlq(doc, 'edmx:DataServices/edm:Schema'):
-            schema_name = schema.attrib['Namespace']
+            schema_name = schema.attrib.get('Alias') or schema.attrib['Namespace']
 
             schema_dict = {
                 'name': schema_name,
@@ -396,7 +415,7 @@ class MetaData(object):
             schemas.append(schema_dict)
 
         for schema in xmlq(doc, 'edmx:DataServices/edm:Schema'):
-            schema_name = schema.attrib['Namespace']
+            schema_name = schema.attrib.get('Alias') or schema.attrib['Namespace']
             for entity_set in xmlq(schema, 'edm:EntityContainer/edm:EntitySet'):
                 set_name = entity_set.attrib['Name']
                 set_type = entity_set.attrib['EntityType']

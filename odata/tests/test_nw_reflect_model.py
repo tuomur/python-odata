@@ -11,6 +11,7 @@ Customer = Service.entities.get('Customer')
 Product = Service.entities.get('Product')
 
 
+@unittest.skip('unavailable')
 class NorthwindReflectModelReadTest(unittest.TestCase):
 
     def test_query_one(self):
