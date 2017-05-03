@@ -41,6 +41,7 @@ class Product(Base):
     quantity_per_unit = StringProperty('QuantityPerUnit')
 
 
+@unittest.skip('unavailable')
 class NorthwindManualModelReadTest(unittest.TestCase):
 
     def test_query_one(self):
