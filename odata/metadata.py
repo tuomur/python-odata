@@ -79,23 +79,25 @@ class MetaData(object):
                 entity_type = entity_dict['type']
                 entity_name = entity_dict['name']
 
-                if entity_dict.get('base_type'):
-                    base_type = entity_dict.get('base_type')
-                    parent_entity_class = all_types.get(base_type)
-                    object_dict = dict(
-                        __odata_schema__=entity_dict,
-                        __odata_type__=entity_type,
-                    )
+                base_type = entity_dict.get('base_type')
+                parent_entity_class = all_types.get(base_type)
+
+                collection_name = entity_sets.get(entity_type, {}).get('name')
+
+                if not collection_name:
+                    collection_name = entity_name
+
+                object_dict = dict(
+                    __odata_schema__=entity_dict,
+                    __odata_type__=entity_type,
+                    __odata_collection__=collection_name
+                )
+
+                if base_type and parent_entity_class:
                     entity_class = type(entity_name, (parent_entity_class,), object_dict)  # type: EntityBase
                     if entity_class.__odata_collection__:
                         entities[entity_name] = entity_class
                 else:
-                    collection_name = entity_sets.get(entity_type, {}).get('name')
-                    object_dict = dict(
-                        __odata_schema__=entity_dict,
-                        __odata_type__=entity_type,
-                        __odata_collection__=collection_name
-                    )
                     entity_class = type(entity_name, (entity_base_class,), object_dict)
                     if collection_name:
                         entities[entity_name] = entity_class
@@ -296,6 +298,10 @@ class MetaData(object):
                 function['return_type'] = type_name
         return function
 
+    def get_type_name(self, name, schema_name):
+        # @TODO: this should be changes to support the real aliases
+        return name.replace('mscrm', 'Microsoft.Dynamics.CRM')
+
     def _parse_entity(self, xmlq, entity_element, schema_name):
         entity_name = entity_element.attrib['Name']
 
@@ -309,8 +315,9 @@ class MetaData(object):
         }
 
         base_type = entity_element.attrib.get('BaseType')
+
         if base_type:
-            entity['base_type'] = base_type
+            entity['base_type'] = self.get_type_name(base_type, schema_name)
 
         entity_pks = {}
         for pk_property in xmlq(entity_element, 'edm:Key/edm:PropertyRef'):
@@ -319,7 +326,7 @@ class MetaData(object):
 
         for entity_property in xmlq(entity_element, 'edm:Property'):
             p_name = entity_property.attrib['Name']
-            p_type = entity_property.attrib['Type']
+            p_type = self.get_type_name(entity_property.attrib['Type'], schema_name)
 
             is_collection, p_type = self._type_is_collection(p_type)
             entity['properties'].append({
@@ -331,7 +338,7 @@ class MetaData(object):
 
         for nav_property in xmlq(entity_element, 'edm:NavigationProperty'):
             p_name = nav_property.attrib['Name']
-            p_type = nav_property.attrib['Type']
+            p_type = self.get_type_name(nav_property.attrib['Type'], schema_name)
             p_foreign_key = None
 
             ref_constraint = xmlq(nav_property, 'edm:ReferentialConstraint')
@@ -390,6 +397,7 @@ class MetaData(object):
                 schema_dict['enum_types'].append(enum)
 
             for entity_type in xmlq(schema, 'edm:EntityType'):
+
                 entity = self._parse_entity(xmlq, entity_type, schema_name)
                 schema_dict['entities'].append(entity)
 
@@ -400,6 +408,8 @@ class MetaData(object):
             for entity_set in xmlq(schema, 'edm:EntityContainer/edm:EntitySet'):
                 set_name = entity_set.attrib['Name']
                 set_type = entity_set.attrib['EntityType']
+
+                set_type = self.get_type_name(set_type, schema_name)
 
                 set_dict = {
                     'name': set_name,
