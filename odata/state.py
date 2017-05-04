@@ -162,11 +162,12 @@ class EntityState(object):
 
         es = entity.__odata__
         for _, prop in es.properties:
-            insert_data[prop.name] = es[prop.name]
+            if prop.name in es.dirty:
+                insert_data[prop.name] = es[prop.name]
 
         # Allow pk properties only if they have values
         for _, pk_prop in es.primary_key_properties:
-            if insert_data[pk_prop.name] is None:
+            if pk_prop.name in insert_data and insert_data[pk_prop.name] is None:
                 insert_data.pop(pk_prop.name)
 
         # Deep insert from nav properties
