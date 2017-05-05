@@ -65,7 +65,9 @@ class MetaData(object):
                 is_collection, type_ = self._type_is_collection(type_)
 
                 for _search_entity in entities.values():
-                    if _search_entity.__odata_schema__['type'] == type_:
+                    _search_type = _search_entity.__odata_schema__['type']
+                    _search_type_alias = _search_entity.__odata_schema__.get('type_alias')
+                    if type_ in (_search_type, _search_type_alias):
                         nav = NavigationProperty(
                             name,
                             _search_entity,
@@ -79,6 +81,7 @@ class MetaData(object):
         for schema in schemas:
             for entity_dict in schema.get('entities'):
                 entity_type = entity_dict['type']
+                entity_type_alias = entity_dict.get('type_alias')
                 entity_name = entity_dict['name']
 
                 if entity_type in all_types:
@@ -97,11 +100,17 @@ class MetaData(object):
                         __odata_schema__=entity_dict,
                         __odata_type__=entity_type,
                     )
+                    entity_set = entity_sets.get(entity_type) or entity_sets.get(entity_type_alias)
+                    collection_name = (entity_set or {}).get('name')
+                    if collection_name:
+                        object_dict['__odata_collection__'] = collection_name
+
                     entity_class = type(entity_name, (parent_entity_class,), object_dict)  # type: EntityBase
                     if entity_class.__odata_collection__:
                         entities[entity_name] = entity_class
                 else:
-                    collection_name = entity_sets.get(entity_type, {}).get('name')
+                    entity_set = entity_sets.get(entity_type) or entity_sets.get(entity_type_alias)
+                    collection_name = (entity_set or {}).get('name')
                     object_dict = dict(
                         __odata_schema__=entity_dict,
                         __odata_type__=entity_type,
@@ -112,6 +121,8 @@ class MetaData(object):
                         entities[entity_name] = entity_class
 
                 all_types[entity_type] = entity_class
+                if entity_type_alias:
+                    all_types[entity_type_alias] = entity_class
 
                 for prop in entity_dict.get('properties'):
                     prop_name = prop['name']
@@ -150,7 +161,7 @@ class MetaData(object):
                 bound_to_collection, entity_type = self._type_is_collection(entity_type)
                 for entity in entities.values():
                     schema = entity.__odata_schema__
-                    if schema['type'] == entity_type:
+                    if entity_type in (schema['type'], schema.get('type_alias')):
                         bind_entity = entity
 
             parameters_dict = {}
@@ -181,7 +192,7 @@ class MetaData(object):
                 bound_to_collection, entity_type = self._type_is_collection(entity_type)
                 for entity in entities.values():
                     schema = entity.__odata_schema__
-                    if schema['type'] == entity_type:
+                    if entity_type in (schema['type'], schema.get('type_alias')):
                         bind_entity = entity
 
             parameters_dict = {}
@@ -315,7 +326,7 @@ class MetaData(object):
                 function['return_type'] = type_name
         return function
 
-    def _parse_entity(self, xmlq, entity_element, schema_name):
+    def _parse_entity(self, xmlq, entity_element, schema_name, schema_alias):
         entity_name = entity_element.attrib['Name']
 
         entity_type_name = '.'.join([schema_name, entity_name])
@@ -326,6 +337,10 @@ class MetaData(object):
             'properties': [],
             'navigation_properties': [],
         }
+
+        if schema_alias:
+            entity_type_name_alias = '.'.join([schema_alias, entity_name])
+            entity['type_alias'] = entity_type_name_alias
 
         base_type = entity_element.attrib.get('BaseType')
         if base_type:
@@ -395,10 +410,12 @@ class MetaData(object):
                 return node.findall(xpath, namespaces=self.namespaces)
 
         for schema in xmlq(doc, 'edmx:DataServices/edm:Schema'):
-            schema_name = schema.attrib.get('Alias') or schema.attrib['Namespace']
+            schema_name = schema.attrib['Namespace']
+            schema_alias = schema.attrib.get('Alias')
 
             schema_dict = {
                 'name': schema_name,
+                'alias': schema_alias,
                 'entities': [],
                 'enum_types': [],
                 'complex_types': [],
@@ -409,13 +426,13 @@ class MetaData(object):
                 schema_dict['enum_types'].append(enum)
 
             for entity_type in xmlq(schema, 'edm:EntityType'):
-                entity = self._parse_entity(xmlq, entity_type, schema_name)
+                entity = self._parse_entity(xmlq, entity_type, schema_name, schema_alias)
                 schema_dict['entities'].append(entity)
 
             schemas.append(schema_dict)
 
         for schema in xmlq(doc, 'edmx:DataServices/edm:Schema'):
-            schema_name = schema.attrib.get('Alias') or schema.attrib['Namespace']
+            schema_name = schema.attrib['Namespace']
             for entity_set in xmlq(schema, 'edm:EntityContainer/edm:EntitySet'):
                 set_name = entity_set.attrib['Name']
                 set_type = entity_set.attrib['EntityType']
@@ -428,7 +445,7 @@ class MetaData(object):
 
                 for schema_ in schemas:
                     for entity in schema_.get('entities', []):
-                        if entity.get('type') == set_type:
+                        if set_type in (entity.get('type'), entity.get('type_alias')):
                             set_dict['schema'] = entity
 
                 container_sets[set_type] = set_dict
