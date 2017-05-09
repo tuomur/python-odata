@@ -141,6 +141,9 @@ class EntityState(object):
         update_data['@odata.type'] = self.entity.__odata_type__
 
         for _, prop in self.dirty_properties:
+            if prop.is_computed_value:
+                continue
+
             update_data[prop.name] = self.data[prop.name]
 
         for prop_name, prop in self.navigation_properties:
@@ -162,6 +165,9 @@ class EntityState(object):
 
         es = entity.__odata__
         for _, prop in es.properties:
+            if prop.is_computed_value:
+                continue
+
             insert_data[prop.name] = es[prop.name]
 
         # Allow pk properties only if they have values

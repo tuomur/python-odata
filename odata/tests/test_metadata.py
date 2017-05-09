@@ -2,7 +2,9 @@
 
 import os
 from unittest import TestCase
+import json
 
+import requests
 import responses
 
 from odata import ODataService
@@ -42,3 +44,26 @@ class TestMetadataImport(TestCase):
         self.assertIn('Manufacturer', Service.entities)
 
         self.assertIn('DemoUnboundAction', Service.actions)
+
+    def test_computed_value_in_insert(self):
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.GET, 'http://demo.local/odata/$metadata/',
+                     body=metadata_xml, content_type='text/xml')
+            Service = ODataService('http://demo.local/odata/', reflect_entities=True)
+
+        Product = Service.entities['Product']
+        test_product = Product()
+
+        def request_callback_part(request):
+            payload = json.loads(request.body)
+            self.assertNotIn('ExampleComputed', payload)
+            headers = {}
+            return requests.codes.created, headers, json.dumps(payload)
+
+        with responses.RequestsMock() as rsps:
+            rsps.add_callback(
+                rsps.POST, Product.__odata_url__(),
+                callback=request_callback_part,
+                content_type='application/json',
+            )
+            Service.save(test_product)

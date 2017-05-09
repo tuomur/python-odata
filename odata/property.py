@@ -66,7 +66,7 @@ class PropertyBase(object):
     :param primary_key: This property is a primary key
     :param is_collection: This property contains multiple values
     """
-    def __init__(self, name, primary_key=False, is_collection=False):
+    def __init__(self, name, primary_key=False, is_collection=False, is_computed_value=False):
         """
         :type name: str
         :type primary_key: bool
@@ -74,6 +74,7 @@ class PropertyBase(object):
         self.name = name
         self.primary_key = primary_key
         self.is_collection = is_collection
+        self.is_computed_value = is_computed_value
 
     def __repr__(self):
         return '<Property({0})>'.format(self.name)

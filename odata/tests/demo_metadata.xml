@@ -15,6 +15,9 @@
                 <Property Name="Category" Type="Edm.String"/>
                 <Property Name="Price" Type="Edm.Decimal"/>
                 <Property Name="ColorSelection" Type="d.ColorSelection"/>
+                <Property Name="ExampleComputed" Type="Edm.Int32">
+                    <Annotation Term="Org.OData.Core.V1.Computed" Bool="true" />
+                </Property>
             </EntityType>
             <EntityType Name="Manufacturer">
                 <Key>
