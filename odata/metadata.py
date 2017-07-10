@@ -50,7 +50,7 @@ class MetaData(object):
 
     def _type_is_collection(self, typename):
         if typename.startswith('Collection('):
-            stripped = typename.lstrip('Collection(').rstrip(')')
+            stripped = typename[11:-1]
             return True, stripped
         else:
             return False, typename
