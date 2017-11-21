@@ -13,7 +13,9 @@ Available on [readthedocs.org](http://tuomur-python-odata.readthedocs.org/en/lat
 ## Dependencies
 
 - requests >= 2.0
+- responses
 - python-dateutil
+
 
 ## Demo
 

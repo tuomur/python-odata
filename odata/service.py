@@ -179,6 +179,15 @@ class ODataService(object):
         """
         return self.default_context.query(entitycls)
 
+    def querySingle(self, entitycls):
+        """
+        Start a new query for given entity class
+
+        :param entitycls: Entity to query
+        :return: Query object
+        """
+        return self.default_context.querySingle(entitycls)
+
     def delete(self, entity):
         """
         Creates a DELETE call to the service, deleting the entity

@@ -78,7 +78,7 @@ class MetaData(object):
                         )
                         setattr(entity, name, nav)
 
-    def _create_entities(self, all_types, entities, entity_sets, entity_base_class, schemas, depth=1):
+    def _create_entities(self, all_types, entities, entity_sets, singletons, entity_base_class, schemas, depth=1):
         orphan_entities = []
         for schema in schemas:
             for entity_dict in schema.get('entities'):
@@ -113,10 +113,13 @@ class MetaData(object):
                 else:
                     entity_set = entity_sets.get(entity_type) or entity_sets.get(entity_type_alias)
                     collection_name = (entity_set or {}).get('name')
+                    singeton = singletons.get(entity_type) or singletons.get(entity_type_alias)
+                    single_name = (singeton or {}).get('name')
                     object_dict = dict(
                         __odata_schema__=entity_dict,
                         __odata_type__=entity_type,
-                        __odata_collection__=collection_name
+                        __odata_collection__=collection_name,
+                        __odata_singleton__=single_name
                     )
                     entity_class = type(entity_name, (entity_base_class,), object_dict)
                     if collection_name:
@@ -154,7 +157,7 @@ class MetaData(object):
                           'Orphaned types: {0}').format(', '.join(orphan_entities))
                 raise ODataReflectionError(errmsg)
             depth += 1
-            self._create_entities(all_types, entities, entity_sets, entity_base_class, schemas, depth)
+            self._create_entities(all_types, entities, entity_sets, singletons, entity_base_class, schemas, depth)
 
     def _create_actions(self, entities, actions, get_entity_or_prop_from_type):
         for action in actions:
@@ -220,7 +223,7 @@ class MetaData(object):
 
     def get_entity_sets(self, base=None):
         document = self.load_document()
-        schemas, entity_sets, actions, functions = self.parse_document(document)
+        schemas, entity_sets, singletons, actions, functions = self.parse_document(document)
 
         entities = {}
         base_class = base or declarative_base()
@@ -242,7 +245,7 @@ class MetaData(object):
                 created_enum = EnumType(enum_type['name'], names=names)
                 all_types[enum_type['fully_qualified_name']] = created_enum
 
-        self._create_entities(all_types, entities, entity_sets, base_class, schemas)
+        self._create_entities(all_types, entities, entity_sets, singletons, base_class, schemas)
         self._set_object_relationships(entities)
         self._create_actions(entities, actions, get_entity_or_prop_from_type)
         self._create_functions(entities, functions, get_entity_or_prop_from_type)
@@ -412,6 +415,7 @@ class MetaData(object):
     def parse_document(self, doc):
         schemas = []
         container_sets = {}
+        container_singletons = {}
         actions = []
         functions = []
 
@@ -463,6 +467,24 @@ class MetaData(object):
 
                 container_sets[set_type] = set_dict
 
+            for singleton in xmlq(schema, 'edm:EntityContainer/edm:Singleton'):
+                set_name = singleton.attrib['Name']
+                set_type = singleton.attrib['Type']
+
+                set_dict = {
+                    'name': set_name,
+                    'type': set_type,
+                    'schema': None,
+                }
+
+                for schema_ in schemas:
+                    for entity in schema_.get('entities', []):
+                        if set_type in (entity.get('type'), entity.get('type_alias')):
+                            set_dict['schema'] = entity
+                            break
+
+                container_singletons[set_type] = set_dict
+
             for action_def in xmlq(schema, 'edm:Action'):
                 action = self._parse_action(xmlq, action_def, schema_name)
                 actions.append(action)
@@ -471,4 +493,4 @@ class MetaData(object):
                 function = self._parse_function(xmlq, function_def, schema_name)
                 functions.append(function)
 
-        return schemas, container_sets, actions, functions
+        return schemas, container_sets, container_singletons, actions, functions

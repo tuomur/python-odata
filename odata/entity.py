@@ -96,6 +96,12 @@ class EntityBase(object):
         # used by Query
         if cls.__odata_collection__:
             return urljoin(cls.__odata_service__.url, cls.__odata_collection__)
+    
+    @classmethod
+    def __odata_single_url__(cls):
+        # used by Query
+        if cls.__odata_singleton__:
+            return urljoin(cls.__odata_service__.url, cls.__odata_singleton__)
 
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)

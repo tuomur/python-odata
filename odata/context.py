@@ -3,6 +3,7 @@
 import logging
 
 from odata.query import Query
+from odata.querysingle import QuerySingle
 from odata.connection import ODataConnection
 
 
@@ -14,6 +15,10 @@ class Context:
 
     def query(self, entitycls):
         q = Query(entitycls, connection=self.connection)
+        return q
+
+    def querySingle(self, entitycls):
+        q = QuerySingle(entitycls, connection=self.connection)
         return q
 
     def call(self, action_or_function, **parameters):
