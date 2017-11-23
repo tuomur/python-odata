@@ -7,8 +7,8 @@ from odata.service import ODataService
 
 url = 'http://services.odata.org/V4/Northwind/Northwind.svc/'
 Service = ODataService(url, reflect_entities=True)
-Customer = Service.entities.get('Customer')
-Product = Service.entities.get('Product')
+Customer = Service.entities.get('Customers')
+Product = Service.entities.get('Products')
 
 
 @unittest.skip('unavailable')

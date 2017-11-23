@@ -23,15 +23,15 @@ class TestMetadataImport(TestCase):
                      body=metadata_xml, content_type='text/xml')
             Service = ODataService('http://demo.local/odata/', reflect_entities=True)
 
-        self.assertIn('Product', Service.entities)
+        self.assertIn('Products', Service.entities)
 
         # non-entityset things should not be listed in entities
-        expected_keys = {'Product', 'ProductWithNavigation', 'Manufacturer',
-                         'ProductManufacturerSales'}
+        expected_keys = {'Products', 'ProductsWithNavigation', 'Manufacturers',
+                         'Product_Manufacturer_Sales'}
         self.assertEqual(set(Service.entities.keys()), expected_keys)
 
-        Product = Service.entities['Product']
-        ProductWithNavigation = Service.entities['ProductWithNavigation']
+        Product = Service.entities['Products']
+        ProductWithNavigation = Service.entities['ProductsWithNavigation']
 
         assert issubclass(Product, EntityBase)
         assert hasattr(Product, 'DemoCollectionAction')
@@ -41,7 +41,7 @@ class TestMetadataImport(TestCase):
         test_product.__odata__.persisted = True
         assert hasattr(test_product, 'DemoActionWithParameters')
         assert hasattr(ProductWithNavigation, 'Manufacturer')
-        self.assertIn('Manufacturer', Service.entities)
+        self.assertIn('Manufacturers', Service.entities)
 
         self.assertIn('DemoUnboundAction', Service.actions)
 
@@ -51,7 +51,7 @@ class TestMetadataImport(TestCase):
                      body=metadata_xml, content_type='text/xml')
             Service = ODataService('http://demo.local/odata/', reflect_entities=True)
 
-        Product = Service.entities['Product']
+        Product = Service.entities['Products']
         test_product = Product()
 
         def request_callback_part(request):

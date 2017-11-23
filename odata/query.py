@@ -78,6 +78,11 @@ class Query(object):
                     options = {}  # we get all options in the nextLink url
                 else:
                     break
+            elif self.entity.__odata_singleton__:
+                yield self._create_model(data)
+                break
+            else:
+                break
 
     def __repr__(self):
         return '<Query for {0}>'.format(self.entity)

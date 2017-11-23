@@ -55,8 +55,12 @@ class MetaData(object):
         else:
             return False, typename
 
-    def _set_object_relationships(self, entities):
-        for entity in entities.values():
+    def _get_entities_from_types(self, all_types):
+        return [entity for entity in all_types.values() if issubclass(entity, EntityBase)]
+
+    def _set_object_relationships(self, all_types):
+        entities = self._get_entities_from_types(all_types)
+        for entity in entities:  # type: EntityBase
             schema = entity.__odata_schema__
 
             for schema_nav in schema.get('navigation_properties', []):
@@ -66,7 +70,7 @@ class MetaData(object):
 
                 is_collection, type_ = self._type_is_collection(type_)
 
-                for _search_entity in entities.values():
+                for _search_entity in entities:
                     _search_type = _search_entity.__odata_schema__['type']
                     _search_type_alias = _search_entity.__odata_schema__.get('type_alias')
                     if type_ in (_search_type, _search_type_alias):
@@ -78,7 +82,7 @@ class MetaData(object):
                         )
                         setattr(entity, name, nav)
 
-    def _create_entities(self, all_types, entities, entity_sets, entity_base_class, schemas, depth=1):
+    def _create_entities(self, all_types, entity_base_class, schemas, depth=1):
         orphan_entities = []
         for schema in schemas:
             for entity_dict in schema.get('entities'):
@@ -89,6 +93,8 @@ class MetaData(object):
                 if entity_type in all_types:
                     continue
 
+                parent_entity_class = None
+
                 if entity_dict.get('base_type'):
                     base_type = entity_dict.get('base_type')
                     parent_entity_class = all_types.get(base_type)
@@ -98,29 +104,12 @@ class MetaData(object):
                         orphan_entities.append(entity_type)
                         continue
 
-                    object_dict = dict(
-                        __odata_schema__=entity_dict,
-                        __odata_type__=entity_type,
-                    )
-                    entity_set = entity_sets.get(entity_type) or entity_sets.get(entity_type_alias)
-                    collection_name = (entity_set or {}).get('name')
-                    if collection_name:
-                        object_dict['__odata_collection__'] = collection_name
-
-                    entity_class = type(entity_name, (parent_entity_class,), object_dict)  # type: EntityBase
-                    if entity_class.__odata_collection__:
-                        entities[entity_name] = entity_class
-                else:
-                    entity_set = entity_sets.get(entity_type) or entity_sets.get(entity_type_alias)
-                    collection_name = (entity_set or {}).get('name')
-                    object_dict = dict(
-                        __odata_schema__=entity_dict,
-                        __odata_type__=entity_type,
-                        __odata_collection__=collection_name
-                    )
-                    entity_class = type(entity_name, (entity_base_class,), object_dict)
-                    if collection_name:
-                        entities[entity_name] = entity_class
+                super_class = parent_entity_class or entity_base_class
+                object_dict = dict(
+                    __odata_schema__=entity_dict,
+                    __odata_type__=entity_type,
+                )
+                entity_class = type(entity_name, (super_class,), object_dict)
 
                 all_types[entity_type] = entity_class
                 if entity_type_alias:
@@ -154,16 +143,17 @@ class MetaData(object):
                           'Orphaned types: {0}').format(', '.join(orphan_entities))
                 raise ODataReflectionError(errmsg)
             depth += 1
-            self._create_entities(all_types, entities, entity_sets, entity_base_class, schemas, depth)
+            self._create_entities(all_types, entity_base_class, schemas, depth)
 
-    def _create_actions(self, entities, actions, get_entity_or_prop_from_type):
+    def _create_actions(self, all_types, actions, get_entity_or_prop_from_type):
+        entities = self._get_entities_from_types(all_types)
         for action in actions:
             entity_type = action['is_bound_to']
             bind_entity = None
             bound_to_collection = False
             if entity_type:
                 bound_to_collection, entity_type = self._type_is_collection(entity_type)
-                for entity in entities.values():
+                for entity in entities:
                     schema = entity.__odata_schema__
                     if entity_type in (schema['type'], schema.get('type_alias')):
                         bind_entity = entity
@@ -187,14 +177,15 @@ class MetaData(object):
             else:
                 self.service.actions[action['name']] = action_class()
 
-    def _create_functions(self, entities, functions, get_entity_or_prop_from_type):
+    def _create_functions(self, all_types, functions, get_entity_or_prop_from_type):
+        entities = self._get_entities_from_types(all_types)
         for function in functions:
             entity_type = function['is_bound_to']
             bind_entity = None
             bound_to_collection = False
             if entity_type:
                 bound_to_collection, entity_type = self._type_is_collection(entity_type)
-                for entity in entities.values():
+                for entity in entities:
                     schema = entity.__odata_schema__
                     if entity_type in (schema['type'], schema.get('type_alias')):
                         bind_entity = entity
@@ -222,7 +213,6 @@ class MetaData(object):
         document = self.load_document()
         schemas, entity_sets, actions, functions = self.parse_document(document)
 
-        entities = {}
         base_class = base or declarative_base()
         all_types = {}
 
@@ -242,13 +232,22 @@ class MetaData(object):
                 created_enum = EnumType(enum_type['name'], names=names)
                 all_types[enum_type['fully_qualified_name']] = created_enum
 
-        self._create_entities(all_types, entities, entity_sets, base_class, schemas)
-        self._set_object_relationships(entities)
-        self._create_actions(entities, actions, get_entity_or_prop_from_type)
-        self._create_functions(entities, functions, get_entity_or_prop_from_type)
+        self._create_entities(all_types, base_class, schemas)
 
-        self.log.info('Loaded {0} entity sets, total {1} types'.format(len(entities), len(all_types)))
-        return base_class, entities, all_types
+        sets = {}
+        for entity_set in entity_sets.values():
+            entity_class = all_types.get(entity_set.get('type'))
+            set_name = entity_set.get('name')
+            is_singleton = entity_set.get('singleton', False)
+            set_class = type('EntitySet' + set_name, (entity_class,), dict(__odata_collection__=set_name, __odata_singleton__=is_singleton))
+            sets[set_name] = set_class
+
+        self._set_object_relationships(all_types)
+        self._create_actions(all_types, actions, get_entity_or_prop_from_type)
+        self._create_functions(all_types, functions, get_entity_or_prop_from_type)
+
+        self.log.info('Loaded {0} entity sets, total {1} types'.format(len(sets), len(all_types)))
+        return base_class, sets, all_types
 
     def load_document(self):
         self.log.info('Loading metadata document: {0}'.format(self.url))
@@ -461,7 +460,25 @@ class MetaData(object):
                         if set_type in (entity.get('type'), entity.get('type_alias')):
                             set_dict['schema'] = entity
 
-                container_sets[set_type] = set_dict
+                container_sets[set_name] = set_dict
+
+            for entity_set in xmlq(schema, 'edm:EntityContainer/edm:Singleton'):
+                set_name = entity_set.attrib['Name']
+                set_type = entity_set.attrib['Type']
+
+                set_dict = {
+                    'name': set_name,
+                    'type': set_type,
+                    'schema': None,
+                    'singleton': True,
+                }
+
+                for schema_ in schemas:
+                    for entity in schema_.get('entities', []):
+                        if set_type in (entity.get('type'), entity.get('type_alias')):
+                            set_dict['schema'] = entity
+
+                container_sets[set_name] = set_dict
 
             for action_def in xmlq(schema, 'edm:Action'):
                 action = self._parse_action(xmlq, action_def, schema_name)

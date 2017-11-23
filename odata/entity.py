@@ -90,6 +90,8 @@ class EntityBase(object):
     __odata_service__ = None
     __odata_collection__ = None
     __odata_type__ = 'ODataSchema.Entity'
+    __odata_singleton__ = False
+    __odata_schema__ = None
 
     @classmethod
     def __odata_url__(cls):
