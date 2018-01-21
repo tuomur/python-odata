@@ -330,6 +330,29 @@ class MetaData(object):
                 function['return_type'] = type_name
         return function
 
+    def _parse_property(self, xmlq, entity_pks, property_):
+
+        p_name = property_.attrib['Name']
+        p_type = property_.attrib['Type']
+
+        is_collection, p_type = self._type_is_collection(p_type)
+        is_computed_value = False
+
+        for annotation in xmlq(property_, 'edm:Annotation'):
+            annotation_term = annotation.attrib.get('Term', '')
+            annotation_bool = annotation.attrib.get('Bool') == 'true'
+            if annotation_term == self._annotation_term_computed:
+                is_computed_value = annotation_bool
+
+        return {
+            'name': p_name,
+            'type': p_type,
+            'is_primary_key': p_name in entity_pks,
+            'is_collection': is_collection,
+            'is_computed_value': is_computed_value,
+        }
+
+
     def _parse_entity(self, xmlq, entity_element, schema_name, schema_alias):
         entity_name = entity_element.attrib['Name']
 
@@ -356,25 +379,7 @@ class MetaData(object):
             entity_pks[pk_property_name] = 0
 
         for entity_property in xmlq(entity_element, 'edm:Property'):
-            p_name = entity_property.attrib['Name']
-            p_type = entity_property.attrib['Type']
-
-            is_collection, p_type = self._type_is_collection(p_type)
-            is_computed_value = False
-
-            for annotation in xmlq(entity_property, 'edm:Annotation'):
-                annotation_term = annotation.attrib.get('Term', '')
-                annotation_bool = annotation.attrib.get('Bool') == 'true'
-                if annotation_term == self._annotation_term_computed:
-                    is_computed_value = annotation_bool
-
-            entity['properties'].append({
-                'name': p_name,
-                'type': p_type,
-                'is_primary_key': p_name in entity_pks,
-                'is_collection': is_collection,
-                'is_computed_value': is_computed_value,
-            })
+            entity['properties'].append(self._parse_property(xmlq, entity_pks, entity_property))
 
         for nav_property in xmlq(entity_element, 'edm:NavigationProperty'):
             p_name = nav_property.attrib['Name']
@@ -409,6 +414,18 @@ class MetaData(object):
             })
         return enum
 
+    def _parse_complextype(self, xmlq, complextype_element, schema_name):
+        complex_name = complextype_element.attrib['Name']
+        complex_ = {
+            'name': complex_name,
+            'fully_qualified_name': '.'.join([schema_name, complex_name]),
+            'properties': []
+        }
+        for complex_property in xmlq(complextype_element, 'edm:Property'):
+            complex_['properties'].append(self._parse_property(xmlq, {}, complex_property))
+        return complex_
+
+
     def parse_document(self, doc):
         schemas = []
         container_sets = {}
@@ -441,6 +458,10 @@ class MetaData(object):
             for entity_type in xmlq(schema, 'edm:EntityType'):
                 entity = self._parse_entity(xmlq, entity_type, schema_name, schema_alias)
                 schema_dict['entities'].append(entity)
+
+            for complex_type in xmlq(schema, 'edm:ComplexType'):
+                complex_ = self._parse_complextype(xmlq, complex_type, schema_name)
+                schema_dict['complex_types'].append(complex_)
 
             schemas.append(schema_dict)
 
