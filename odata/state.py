@@ -76,6 +76,9 @@ class EntityState(object):
     def id(self):
         ids = []
         entity_name = self.entity.__odata_collection__
+        if entity_name is None:
+            return
+
         for prop_name, prop in self.primary_key_properties:
             value = self.data.get(prop.name)
             if value:

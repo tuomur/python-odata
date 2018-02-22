@@ -4,6 +4,7 @@ import logging
 
 from odata.query import Query
 from odata.connection import ODataConnection
+from odata.exceptions import ODataError
 
 
 class Context:
@@ -22,10 +23,19 @@ class Context:
 
         :param action_or_function: Action/Function instance on a Entity class
         :param parameters: Keyword parameters to pass to Action/Function
-        :return: OData raw response
         """
         parameters['__connection__'] = self.connection
         return action_or_function(**parameters)
+
+    def call_with_query(self, action_or_function, query, **parameters):
+        """
+        Call a defined Action or Function using this Context's connection.
+
+        :param action_or_function: Action/Function instance on a Entity class
+        :param parameters: Keyword parameters to pass to Action/Function
+        """
+        parameters['__connection__'] = self.connection
+        return action_or_function.with_query(query)(**parameters)
 
     def delete(self, entity):
         """
@@ -66,9 +76,12 @@ class Context:
 
         :type entity: EntityBase
         """
-        self.log.info(u'Saving new entity')
-
         url = entity.__odata_url__()
+        if url is None:
+            msg = 'Cannot insert Entity that does not belong to EntitySet: {0}'.format(entity)
+            raise ODataError(msg)
+
+        self.log.info(u'Saving new entity')
 
         es = entity.__odata__
         insert_data = es.data_for_insert()
@@ -89,6 +102,10 @@ class Context:
         :type entity: EntityBase
         """
         es = entity.__odata__
+        if es.instance_url is None:
+            msg = 'Cannot update Entity that does not belong to EntitySet: {0}'.format(entity)
+            raise ODataError(msg)
+
         patch_data = es.data_for_update()
 
         if len([i for i in patch_data if not i.startswith('@')]) == 0:
