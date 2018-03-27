@@ -4,6 +4,7 @@ from odata import ODataService
 from odata.property import StringProperty, IntegerProperty, DecimalProperty, \
     NavigationProperty, DatetimeProperty
 from odata.enumtype import EnumType, EnumTypeProperty
+from odata.complextype import ComplexType, ComplexTypeProperty
 
 url = 'http://unittest.server.local/odata/'
 Service = ODataService(url)
@@ -49,6 +50,13 @@ class ColorSelection(EnumType):
     Green = 3
 
 
+class Dimensions(ComplexType):
+    properties = dict(Height=DecimalProperty,
+                      Weight=StringProperty,
+                      Length=DecimalProperty,
+                      )
+
+
 class Product(Service.Entity):
     __odata_type__ = 'ODataTest.Objects.Product'
     __odata_collection__ = 'ProductParts'
@@ -59,6 +67,7 @@ class Product(Service.Entity):
     price = DecimalProperty('Price')
     color_selection = EnumTypeProperty('ColorSelection',
                                        enum_class=ColorSelection)
+    dimensions = ComplexTypeProperty('Dimensions', type_class=Dimensions)
 
     DemoAction = DemoAction()
     DemoCollectionAction = DemoCollectionAction()

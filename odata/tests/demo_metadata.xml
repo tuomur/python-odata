@@ -34,6 +34,11 @@
                 <Property Name="ManufacturerID" Type="Edm.Int32" Nullable="false"/>
                 <Property Name="SalesAmount" Type="Edm.Decimal"/>
             </EntityType>
+            <ComplexType Name="Dimensions">
+                <Property Name="Height" Nullable="false" Type="Edm.Decimal" />
+                <Property Name="Weight" Nullable="false" Type="Edm.String" />
+                <Property Name="Length" Nullable="false" Type="Edm.Decimal" />
+            </ComplexType>
             <EnumType Name="ColorSelection">
                 <Member Name="Black" Value="0"/>
                 <Member Name="Red" Value="1"/>
