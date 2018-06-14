@@ -251,7 +251,7 @@ class MetaData(object):
 
     def load_document(self):
         self.log.info('Loading metadata document: {0}'.format(self.url))
-        response = self.connection._do_get(self.url)
+        response = self.connection._do_get(self.url,headers = self.service.custom_headers)
         return ET.fromstring(response.content)
 
     def _parse_action(self, xmlq, action_element, schema_name):

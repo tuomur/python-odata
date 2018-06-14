@@ -30,13 +30,14 @@ class ODataConnection(object):
     }
     timeout = 90
 
-    def __init__(self, session=None, auth=None):
+    def __init__(self, session=None, auth=None, custom_headers=None):
         if session is None:
             self.session = requests.Session()
         else:
             self.session = session
         self.auth = auth
         self.log = logging.getLogger('odata.connection')
+        self.custom_headers=custom_headers
 
     def _apply_options(self, kwargs):
         kwargs['timeout'] = self.timeout
@@ -99,7 +100,8 @@ class ODataConnection(object):
     def execute_get(self, url, params=None):
         headers = {}
         headers.update(self.base_headers)
-
+        if self.custom_headers is not None:
+          headers.update(self.custom_headers)
         self.log.info(u'GET {0}'.format(url))
         if params:
             self.log.info(u'Query: {0}'.format(params))
@@ -121,7 +123,8 @@ class ODataConnection(object):
             'Content-Type': 'application/json',
         }
         headers.update(self.base_headers)
-
+        if self.custom_headers is not None:
+          headers.update(self.custom_headers)
         data = json.dumps(data)
 
         self.log.info(u'POST {0}'.format(url))
@@ -141,7 +144,8 @@ class ODataConnection(object):
             'Content-Type': 'application/json',
         }
         headers.update(self.base_headers)
-
+        if self.custom_headers is not None:
+          headers.update(self.custom_headers)
         data = json.dumps(data)
 
         self.log.info(u'PATCH {0}'.format(url))
@@ -153,7 +157,8 @@ class ODataConnection(object):
     def execute_delete(self, url):
         headers = {}
         headers.update(self.base_headers)
-
+        if self.custom_headers is not None:
+          headers.update(self.custom_headers)
         self.log.info(u'DELETE {0}'.format(url))
 
         response = self._do_delete(url, headers=headers)

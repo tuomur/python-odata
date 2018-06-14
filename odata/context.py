@@ -9,9 +9,9 @@ from odata.exceptions import ODataError
 
 class Context:
 
-    def __init__(self, session=None, auth=None):
+    def __init__(self, session=None, auth=None,custom_headers=None):
         self.log = logging.getLogger('odata.context')
-        self.connection = ODataConnection(session=session, auth=auth)
+        self.connection = ODataConnection(session=session, auth=auth,custom_headers=custom_headers)
 
     def query(self, entitycls):
         q = Query(entitycls, connection=self.connection)

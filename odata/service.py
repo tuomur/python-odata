@@ -74,15 +74,16 @@ class ODataService(object):
     :param reflect_entities: Create a request to the service for its metadata, and create entity classes automatically
     :param session: Custom Requests session to use for communication with the endpoint
     :param auth: Custom Requests auth object to use for credentials
+    :param custom_headers: Custom http headers to use with connections
     :raises ODataConnectionError: Fetching metadata failed. Server returned an HTTP error code
     """
-    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None):
+    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None,custom_headers=None):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
         self.log = logging.getLogger('odata.service')
-        self.default_context = Context(auth=auth, session=session)
-
+        self.default_context = Context(auth=auth, session=session,custom_headers = custom_headers)
+        self.custom_headers = custom_headers
         self.entities = {}
         """
         A dictionary containing all the automatically created Entity classes.
