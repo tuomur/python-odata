@@ -19,7 +19,7 @@ class TestMetadataImport(TestCase):
 
     def test_read(self):
         with responses.RequestsMock() as rsps:
-            rsps.add(rsps.GET, 'http://demo.local/odata/$metadata/',
+            rsps.add(rsps.GET, 'http://demo.local/odata/$metadata',
                      body=metadata_xml, content_type='text/xml')
             Service = ODataService('http://demo.local/odata/', reflect_entities=True)
 
@@ -47,7 +47,7 @@ class TestMetadataImport(TestCase):
 
     def test_computed_value_in_insert(self):
         with responses.RequestsMock() as rsps:
-            rsps.add(rsps.GET, 'http://demo.local/odata/$metadata/',
+            rsps.add(rsps.GET, 'http://demo.local/odata/$metadata',
                      body=metadata_xml, content_type='text/xml')
             Service = ODataService('http://demo.local/odata/', reflect_entities=True)
 
