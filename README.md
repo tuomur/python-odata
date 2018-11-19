@@ -23,7 +23,7 @@ Reading data from the Northwind service.
 from odata import ODataService
 url = 'http://services.odata.org/V4/Northwind/Northwind.svc/'
 Service = ODataService(url, reflect_entities=True)
-Supplier = Service.entities['Supplier']
+Supplier = Service.entities['Suppliers']
 
 query = Service.query(Supplier)
 query = query.limit(2)
