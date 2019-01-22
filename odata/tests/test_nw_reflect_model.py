@@ -3,16 +3,27 @@
 import unittest
 
 from odata.service import ODataService
+from odata.exceptions import ODataConnectionError
 
 
-url = 'http://services.odata.org/V4/Northwind/Northwind.svc/'
-Service = ODataService(url, reflect_entities=True)
-Customer = Service.entities.get('Customers')
-Product = Service.entities.get('Products')
+Service = None
+Customer = None
+Product = None
 
 
 @unittest.skip('unavailable')
 class NorthwindReflectModelReadTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        global Service, Customer, Product
+        url = 'http://services.odata.org/V4/Northwind/Northwind.svc/'
+        try:
+            Service = ODataService(url, reflect_entities=True)
+        except ODataConnectionError:
+            raise unittest.SkipTest('Unable to connect to Northwind service')
+        Customer = Service.entities.get('Customers')
+        Product = Service.entities.get('Products')
 
     def test_query_one(self):
         q = Service.query(Customer)
