@@ -15,6 +15,7 @@
                 <Property Name="Category" Type="Edm.String"/>
                 <Property Name="Price" Type="Edm.Decimal"/>
                 <Property Name="ColorSelection" Type="d.ColorSelection"/>
+                <Property Name="ShippingRestriction" Type="d.ShippingRestriction"/>
                 <Property Name="ExampleComputed" Type="Edm.Int32">
                     <Annotation Term="Org.OData.Core.V1.Computed" Bool="true" />
                 </Property>
@@ -39,6 +40,12 @@
                 <Member Name="Red" Value="1"/>
                 <Member Name="Blue" Value="2"/>
                 <Member Name="Green" Value="3"/>
+            </EnumType>
+            <EnumType Name="ShippingRestriction">
+                <Member Name="Unrestricted" />
+                <Member Name="Fragile" />
+                <Member Name="Heavy" />
+                <Member Name="Oversize" />
             </EnumType>
         </Schema>
         <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="DemoService">

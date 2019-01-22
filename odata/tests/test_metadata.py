@@ -45,6 +45,12 @@ class TestMetadataImport(TestCase):
 
         self.assertIn('DemoUnboundAction', Service.actions)
 
+        ColorSelection = Service.types['DemoService.Models.ColorSelection']
+        self.assertEqual(ColorSelection.Red.value, 1)
+        ShippingRestriction = Service.types[
+                'DemoService.Models.ShippingRestriction']
+        self.assertEqual(ShippingRestriction.Fragile.value, 1)
+
     def test_computed_value_in_insert(self):
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, 'http://demo.local/odata/$metadata/',

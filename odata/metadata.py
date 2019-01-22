@@ -399,13 +399,16 @@ class MetaData(object):
             'fully_qualified_name': '.'.join([schema_name, enum_name]),
             'members': []
         }
+        next_value = 0
         for enum_member in xmlq(enumtype_element, 'edm:Member'):
             member_name = enum_member.attrib['Name']
-            member_value = int(enum_member.attrib['Value'])
+            member_value = enum_member.attrib.get('Value', next_value)
+            member_value = int(member_value)
             enum['members'].append({
                 'name': member_name,
                 'value': member_value,
             })
+            next_value += 1
         return enum
 
     def parse_document(self, doc):
