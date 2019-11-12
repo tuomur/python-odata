@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 
 requires = [
-    'requests>=2.0',
+    'requests>=2.22.0',
     'python-dateutil',
 ]
 
