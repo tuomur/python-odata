@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+import os
 
 from odata.service import ODataService
 from odata.exceptions import ODataConnectionError
@@ -10,8 +11,8 @@ Service = None
 Customer = None
 Product = None
 
-
-@unittest.skip('unavailable')
+@unittest.skipUnless(os.environ.get('ODATA_DO_REMOTE_TESTS', False),
+        'Avoid Northwind service unless requested')
 class NorthwindReflectModelReadTest(unittest.TestCase):
 
     @classmethod

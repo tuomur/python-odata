@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+import os
 
 from odata.service import ODataService
+from odata.exceptions import ODataConnectionError
 from odata.entity import declarative_base
 from odata.property import StringProperty, IntegerProperty
 
@@ -41,8 +43,17 @@ class Product(Base):
     quantity_per_unit = StringProperty('QuantityPerUnit')
 
 
-@unittest.skip('unavailable')
+@unittest.skipUnless(os.environ.get('ODATA_DO_REMOTE_TESTS', False),
+        'Avoid Northwind service unless requested')
 class NorthwindManualModelReadTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            # Test query to make sure we have an OData connection
+            q = service.query(Customer).first()
+        except ODataConnectionError:
+            raise unittest.SkipTest('Unable to connect to Northwind service')
 
     def test_query_one(self):
         q = service.query(Customer)
