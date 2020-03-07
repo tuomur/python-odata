@@ -55,3 +55,21 @@ for order in query:
     order.Employee = empl
     Service.save(order)
 ```
+
+## Running tests
+
+To run the tests, you can use pytest or unittest:
+
+- python -m pytest
+- python -m unittest discover
+
+To include tests that call the Northwind service, set the envionment variable:
+
+```
+export ODATA_DO_REMOTE_TESTS=1
+```
+
+The Northwind tests are automatically skipped if it cannot connect to the service.
+
+Test dependency:
+- responses
