@@ -13,8 +13,8 @@ class Context:
         self.log = logging.getLogger('odata.context')
         self.connection = ODataConnection(session=session, auth=auth)
 
-    def query(self, entitycls):
-        q = Query(entitycls, connection=self.connection)
+    def query(self, entitycls, options=None):
+        q = Query(entitycls, connection=self.connection, options=options)
         return q
 
     def call(self, action_or_function, **parameters):

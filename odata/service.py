@@ -170,14 +170,14 @@ class ODataService(object):
         """Returns boolean indicating entity's status"""
         return self.default_context.is_entity_saved(entity)
 
-    def query(self, entitycls):
+    def query(self, entitycls, options=None):
         """
         Start a new query for given entity class
 
         :param entitycls: Entity to query
         :return: Query object
         """
-        return self.default_context.query(entitycls)
+        return self.default_context.query(entitycls, options=options)
 
     def delete(self, entity):
         """
