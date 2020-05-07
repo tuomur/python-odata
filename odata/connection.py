@@ -45,24 +45,16 @@ class ODataConnection(object):
         if self.auth is not None:
             kwargs["auth"] = self.auth
 
-    @catch_requests_errors
     def _do_get(self, *args, **kwargs):
-        self._apply_options(kwargs)
         return self._do("GET", *args, **kwargs)
 
-    @catch_requests_errors
     def _do_post(self, *args, **kwargs):
-        self._apply_options(kwargs)
         return self._do("POST", *args, **kwargs)
 
-    @catch_requests_errors
     def _do_patch(self, *args, **kwargs):
-        self._apply_options(kwargs)
         return self._do("PATCH", *args, **kwargs)
 
-    @catch_requests_errors
     def _do_delete(self, *args, **kwargs):
-        self._apply_options(kwargs)
         return self._do("DELETE", *args, **kwargs)
 
     @catch_requests_errors
