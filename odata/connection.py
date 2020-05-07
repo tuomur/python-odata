@@ -29,7 +29,7 @@ class ODataConnection(object):
         "OData-Version": "4.0",
         "User-Agent": "python-odata {0}".format(version),
     }
-    timeout = 90
+    timeout = 10
 
     def __init__(self, session=None, auth=None):
         if session is None:
