@@ -5,7 +5,9 @@ import functools
 import logging
 
 import requests
-from requests.exceptions import RequestException, HTTPError
+import requests.exceptions
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 from odata import version
 from .exceptions import ODataError, ODataConnectionError
@@ -16,7 +18,7 @@ def catch_requests_errors(fn):
     def inner(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
-        except RequestException as e:
+        except requests.exceptions.RequestException as e:
             raise ODataConnectionError(str(e))
 
     return inner
@@ -34,6 +36,11 @@ class ODataConnection(object):
     def __init__(self, session=None, auth=None):
         if session is None:
             self.session = requests.Session()
+            adapter = HTTPAdapter(
+                max_retries=Retry(total=5, status_forcelist=[429, 500, 502, 503, 504])
+            )
+            self.session.mount("https://", adapter)
+
         else:
             self.session = session
         self.auth = auth
@@ -65,7 +72,7 @@ class ODataConnection(object):
     def _handle_odata_error(self, response):
         try:
             response.raise_for_status()
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             status_code = "HTTP {0}".format(response.status_code)
             code = "None"
             message = "Server did not supply any error messages"
