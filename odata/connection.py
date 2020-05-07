@@ -5,7 +5,7 @@ import functools
 import logging
 
 import requests
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException, HTTPError
 
 from odata import version
 from .exceptions import ODataError, ODataConnectionError
@@ -65,7 +65,7 @@ class ODataConnection(object):
     def _handle_odata_error(self, response):
         try:
             response.raise_for_status()
-        except:
+        except HTTPError:
             status_code = "HTTP {0}".format(response.status_code)
             code = "None"
             message = "Server did not supply any error messages"
