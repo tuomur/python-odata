@@ -92,12 +92,33 @@ class EntityBase(object):
     __odata_type__ = 'ODataSchema.Entity'
     __odata_singleton__ = False
     __odata_schema__ = None
+    __odata_scope__ = None
 
     @classmethod
     def __odata_url__(cls):
         # used by Query
         if cls.__odata_collection__:
-            return urljoin(cls.__odata_service__.url, cls.__odata_collection__)
+            if cls.__odata_scope__:
+                if callable(cls.__odata_scope__):
+                    return "/".join([
+                        urljoin(
+                            cls.__odata_service__.url,
+                            cls.__odata_scope__()
+                        ),
+                        cls.__odata_collection__
+
+                    ])
+                else:
+                    return "/".join([
+                        urljoin(
+                            cls.__odata_service__.url,
+                            cls.__odata_scope__
+                        ),
+                        cls.__odata_collection__
+
+                    ])
+            else:
+                return urljoin(cls.__odata_service__.url, cls.__odata_collection__)
 
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)
