@@ -3,6 +3,7 @@
 from __future__ import print_function
 import os
 import inspect
+import re
 from collections import OrderedDict
 
 from odata.property import PropertyBase, NavigationProperty
@@ -96,7 +97,9 @@ class EntityState(object):
     @property
     def instance_url(self):
         if self.id:
-            return self.entity.__odata_url_base__ + self.id
+            url = re.sub(self.entity.__odata_collection__, '', self.entity.__odata_url__())
+            print(url + self.id)
+            return url + self.id
 
     @property
     def properties(self):
