@@ -210,4 +210,9 @@ class EntityState(object):
                     else:
                         insert_data[prop.name] = self._clean_new_entity(value)
 
+        for _, prop in es.properties:
+            if prop.name in insert_data:
+                if not insert_data[prop.name]:
+                    insert_data.pop(prop.name)
+
         return insert_data

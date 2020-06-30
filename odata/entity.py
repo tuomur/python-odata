@@ -123,6 +123,7 @@ class EntityBase(object):
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)
         i.__odata__ = es = EntityState(i)
+        data = args[0]
 
         if 'from_data' in kwargs:
             raw_data = kwargs.pop('from_data')
@@ -142,7 +143,10 @@ class EntityBase(object):
             i.__odata__.persisted = True
         else:
             for prop_name, prop in es.properties:
-                i.__odata__[prop.name] = None
+                if prop_name in data.keys():
+                    i.__odata__[prop.name] = data[prop_name]
+                else:
+                    i.__odata__[prop.name] = None
 
         return i
 
