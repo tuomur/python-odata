@@ -58,8 +58,12 @@ class Context:
         """
         self.log.info(u'Fetching entity: {0}'.format(entity))
         url = entity.__odata__.instance_url
-        self.connection.execute_get(url)
+        data = self.connection.execute_get(url)
+        entity.__odata__.reset()
+        if data is not None:
+            entity.__odata__.update(data)
         self.log.info(u'Success')
+        return entity
 
     def save(self, entity, force_refresh=True):
         """
