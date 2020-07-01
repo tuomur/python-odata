@@ -179,6 +179,14 @@ class ODataService(object):
         """
         return self.default_context.query(entitycls, options=options)
 
+    def get(self, entity):
+        """
+        Creates a GET call to the service, fetching the entity
+
+        :type entity: EntityBase
+        """
+        return self.default_context.get(entity)
+
     def delete(self, entity):
         """
         Creates a DELETE call to the service, deleting the entity

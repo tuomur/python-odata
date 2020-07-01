@@ -50,6 +50,17 @@ class Context:
         entity.__odata__.persisted = False
         self.log.info(u'Success')
 
+    def get(self, entity):
+        """
+        Creates a GET call to the service, fetching the entity
+
+        :type entity: EntityBase
+        """
+        self.log.info(u'Fetching entity: {0}'.format(entity))
+        url = entity.__odata__.instance_url
+        self.connection.execute_get(url)
+        self.log.info(u'Success')
+
     def save(self, entity, force_refresh=True):
         """
         Creates a POST or PATCH call to the service. If the entity already has
