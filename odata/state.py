@@ -98,7 +98,6 @@ class EntityState(object):
     def instance_url(self):
         if self.id:
             url = re.sub(self.entity.__odata_collection__, '', self.entity.__odata_url__())
-            print(url + self.id)
             return url + self.id
 
     @property
