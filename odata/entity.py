@@ -123,7 +123,10 @@ class EntityBase(object):
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)
         i.__odata__ = es = EntityState(i)
-        data = args[0]
+        if len(args) > 0:
+            data = args[0]
+        else:
+            data = {}
 
         if 'from_data' in kwargs:
             raw_data = kwargs.pop('from_data')
