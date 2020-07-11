@@ -1,8 +1,11 @@
 *.pyc
 *.pyo
 *.egg-info
+*.code-workspace
 .idea
 dist
 build/
 doc/_build/
 venv/
+.vscode/
+debug.py

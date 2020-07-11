@@ -55,12 +55,25 @@ class NavigationProperty(object):
     def __repr__(self):
         return u'<NavigationProperty to {0}>'.format(self.entitycls)
 
-    def instances_from_data(self, raw_data):
+    def instances_from_data(self, raw_data, connection):
         if self.is_collection:
-            return [self.entitycls.__new__(self.entitycls, from_data=d) for d in raw_data]
+            return [self.instance_from_data(d, connection) for d in raw_data['value']] if raw_data['value'] else []
         else:
-            return self.entitycls.__new__(self.entitycls, from_data=raw_data)
+            return self.instance_from_data(raw_data, connection) if raw_data else None
 
+    def instance_from_data(self, raw_data, connection): # mwa: this needs to be seperated form navproperty
+        entitycls = self._getClass_by_response_type(self.entitycls, raw_data.get('@odata.type'))
+        e = entitycls.__new__(entitycls, from_data=raw_data)
+        es = e.__odata__
+        es.connection = connection
+        return e
+            
+    def _getClass_by_response_type(self, matched_class, odata_type):
+        if not odata_type: return matched_class
+        for subclass in matched_class.__subclasses__():
+            if subclass.__odata_type__ == odata_type[1:]: return self._getClass_by_response_type(subclass, odata_type)
+        return matched_class
+        
     def _get_parent_cache(self, instance):
         es = instance.__odata__
         ic = es.nav_cache
@@ -102,20 +115,11 @@ class NavigationProperty(object):
 
         parent_url += '/'
         url = urljoin(parent_url, self.name)
+        cache_type  = 'collection' if self.is_collection else 'single'
 
-        if self.is_collection:
-            if 'collection' not in cache:
-                raw_data = connection.execute_get(url)
-                if raw_data:
-                    cache['collection'] = self.instances_from_data(raw_data['value'])
-                else:
-                    cache['collection'] = []
-            return cache['collection']
-        else:
-            if 'single' not in cache:
-                raw_data = connection.execute_get(url)
-                if raw_data:
-                    cache['single'] = self.instances_from_data(raw_data)
-                else:
-                    cache['single'] = None
-            return cache['single']
+        try:
+            return cache[cache_type]
+        except KeyError:
+            raw_data = connection.execute_get(url)
+            cache[cache_type] = self.instances_from_data(raw_data, connection)
+        return cache[cache_type]
