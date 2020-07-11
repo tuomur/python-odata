@@ -55,21 +55,24 @@ class NavigationProperty(object):
     def __repr__(self):
         return u'<NavigationProperty to {0}>'.format(self.entitycls)
 
-    def instances_from_data(self, raw_data):
+    def instances_from_data(self, raw_data, connection):
         if self.is_collection:
-            return [self.instance_from_data(d) for d in raw_data['value']] if raw_data['value'] else []
+            return [self.instance_from_data(d, connection) for d in raw_data['value']] if raw_data['value'] else []
         else:
-            return self.instance_from_data(raw_data) if raw_data else None
+            return self.instance_from_data(raw_data, connection) if raw_data else None
 
-    def instance_from_data(self, raw_data):
-        entitycls = self._getClass_by_response_type(raw_data.get('@odata.type'))
-        return entitycls.__new__(entitycls, from_data=raw_data)
+    def instance_from_data(self, raw_data, connection): # mwa: this needs to be seperated form navproperty
+        entitycls = self._getClass_by_response_type(self.entitycls, raw_data.get('@odata.type'))
+        e = entitycls.__new__(entitycls, from_data=raw_data)
+        es = e.__odata__
+        es.connection = connection
+        return e
             
-    def _getClass_by_response_type(self, odata_type):
-        if not odata_type: return self.entitycls
-        for subclass in self.entitycls.__subclasses__():
-            if subclass.__odata_type__ == odata_type[1:]: return subclass
-        return self.entitycls
+    def _getClass_by_response_type(self, matched_class, odata_type):
+        if not odata_type: return matched_class
+        for subclass in matched_class.__subclasses__():
+            if subclass.__odata_type__ == odata_type[1:]: return self._getClass_by_response_type(subclass, odata_type)
+        return matched_class
         
     def _get_parent_cache(self, instance):
         es = instance.__odata__
@@ -118,5 +121,5 @@ class NavigationProperty(object):
             return cache[cache_type]
         except KeyError:
             raw_data = connection.execute_get(url)
-            cache[cache_type] = self.instances_from_data(raw_data)
+            cache[cache_type] = self.instances_from_data(raw_data, connection)
         return cache[cache_type]
