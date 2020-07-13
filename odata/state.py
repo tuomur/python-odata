@@ -15,6 +15,7 @@ class EntityState(object):
         self.entity = entity
         self.dirty = []
         self.nav_cache = {}
+        self.nav_saved = {}
         self.data = {}
         self.connection = None
         # does this object exist serverside
@@ -85,6 +86,8 @@ class EntityState(object):
                 ids.append((prop, str(prop.escape_value(value))))
         if len(ids) == 1:
             key_value = ids[0][1]
+            # return u'{0}/{1}'.format(self.entity.__odata_url__(),
+            #                           key_value)
             return u'{0}({1})'.format(entity_name,
                                       key_value)
         if len(ids) > 1:
@@ -142,11 +145,10 @@ class EntityState(object):
     def data_for_update(self):
         update_data = OrderedDict()
         update_data['@odata.type'] = self.entity.__odata_type__
-
+        delete_data = OrderedDict()
         for _, prop in self.dirty_properties:
             if prop.is_computed_value:
                 continue
-
             update_data[prop.name] = self.data[prop.name]
 
         for prop_name, prop in self.navigation_properties:
@@ -156,10 +158,23 @@ class EntityState(object):
                 if value is not None:
                     key = '{0}@odata.bind'.format(prop.name)
                     if prop.is_collection:
-                        update_data[key] = [i.__odata__.id for i in value]
+                        new_set = set([ent.id for ent in value])
+                        old_set = set([ent.id for ent in self.entity.__odata__.nav_cache[prop.name]['saved']])
+
+                        ids_to_add = new_set - old_set
+                        entity_to_add = [ent for ent in value if ent.id in ids_to_add]
+                        if len(entity_to_add): 
+                            update_data[key] = ['{}/{}'.format(i.__odata_url__(), i.id) for i in entity_to_add]
+
+                        ids_to_delete = old_set - new_set
+                        if len(ids_to_delete):
+                            delete_data[prop.name] = list(ids_to_delete)
+
+                        #update_data[key] = [i.__odata__.id for i in value]
                     else:
-                        update_data[key] = value.__odata__.id
-        return update_data
+                        update_data[key] = '{}/{}'.format(value.__odata_url__(), value.id)
+                        # update_data[key] = value.__odata__.id
+        return update_data, delete_data
 
     def _clean_new_entity(self, entity):
         """:type entity: odata.entity.EntityBase """

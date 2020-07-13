@@ -122,4 +122,5 @@ class NavigationProperty(object):
         except KeyError:
             raw_data = connection.execute_get(url)
             cache[cache_type] = self.instances_from_data(raw_data, connection)
+            cache['saved'] = cache[cache_type]
         return cache[cache_type]

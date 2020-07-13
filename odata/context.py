@@ -106,19 +106,26 @@ class Context:
             msg = 'Cannot update Entity that does not belong to EntitySet: {0}'.format(entity)
             raise ODataError(msg)
 
-        patch_data = es.data_for_update()
+        patch_data, del_data = es.data_for_update()
 
-        if len([i for i in patch_data if not i.startswith('@')]) == 0:
-            self.log.debug(u'Nothing to update: {0}'.format(entity))
-            return
+        # if len([i for i in patch_data if not i.startswith('@')]) == 0:
+        #     self.log.debug(u'Nothing to update: {0}'.format(entity))
+        #     return
 
         self.log.info(u'Updating existing entity: {0}'.format(entity))
 
         url = es.instance_url
 
-        saved_data = self.connection.execute_patch(url, patch_data)
-        es.reset()
+        if len([i for i in patch_data if not i.startswith('@')]):
+            saved_data = self.connection.execute_patch(url, patch_data)
 
+        for nav_prop in del_data:
+            for reference_id in del_data[nav_prop]:
+                del_url = '{}/{}/{}/$ref'.format(url, nav_prop, reference_id)
+                saved_data = self.connection.execute_delete(del_url)
+        
+        es.reset()
+        
         if saved_data is None and force_refresh:
             self.log.info(u'Reloading entity from service')
             saved_data = self.connection.execute_get(url)
