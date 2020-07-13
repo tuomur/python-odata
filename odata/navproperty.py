@@ -120,7 +120,12 @@ class NavigationProperty(object):
         try:
             return cache[cache_type]
         except KeyError:
-            raw_data = connection.execute_get(url)
-            cache[cache_type] = self.instances_from_data(raw_data, connection)
+            cache[cache_type] = []
+            while True:
+                raw_data = connection.execute_get(url)
+                cache[cache_type].extend(self.instances_from_data(raw_data, connection))
+                if not '@odata.nextLink' in raw_data:
+                    break
+                url = raw_data.get('@odata.nextLink')
             cache['saved'] = cache[cache_type]
         return cache[cache_type]
