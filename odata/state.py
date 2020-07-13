@@ -86,8 +86,6 @@ class EntityState(object):
                 ids.append((prop, str(prop.escape_value(value))))
         if len(ids) == 1:
             key_value = ids[0][1]
-            # return u'{0}/{1}'.format(self.entity.__odata_url__(),
-            #                           key_value)
             return u'{0}({1})'.format(entity_name,
                                       key_value)
         if len(ids) > 1:
@@ -159,7 +157,7 @@ class EntityState(object):
                     key = '{0}@odata.bind'.format(prop.name)
                     if prop.is_collection:
                         new_set = set([ent.id for ent in value])
-                        old_set = set([ent.id for ent in self.entity.__odata__.nav_cache[prop.name]['saved']])
+                        old_set = set([ent.id for ent in prop._get_instances_from_server(self.entity)])
 
                         ids_to_add = new_set - old_set
                         entity_to_add = [ent for ent in value if ent.id in ids_to_add]

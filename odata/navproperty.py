@@ -84,6 +84,21 @@ class NavigationProperty(object):
             cache = ic[self.name]
         return cache
 
+    def _get_instances_from_server(self, instance):
+        es = instance.__odata__
+        connection = es.connection
+        parent_url = es.instance_url
+        parent_url += '/'
+        url = urljoin(parent_url, self.name)
+        instances = []
+        while True:
+            raw_data = connection.execute_get(url)
+            instances.extend(self.instances_from_data(raw_data, connection))
+            if not '@odata.nextLink' in raw_data:
+                break
+            url = raw_data.get('@odata.nextLink')
+        return instances
+
     def __set__(self, instance, value):
         """
         :type instance: odata.entity.EntityBase
@@ -103,29 +118,17 @@ class NavigationProperty(object):
             return self
 
         es = instance.__odata__
-        connection = es.connection
-        parent_url = es.instance_url
-        new_object = parent_url is None
         cache = self._get_parent_cache(instance)
 
-        if new_object:
+        if es.instance_url is None:
             if self.is_collection:
                 return cache.get('collection', [])
             return cache.get('single', None)
 
-        parent_url += '/'
-        url = urljoin(parent_url, self.name)
         cache_type  = 'collection' if self.is_collection else 'single'
 
         try:
             return cache[cache_type]
         except KeyError:
-            cache[cache_type] = []
-            while True:
-                raw_data = connection.execute_get(url)
-                cache[cache_type].extend(self.instances_from_data(raw_data, connection))
-                if not '@odata.nextLink' in raw_data:
-                    break
-                url = raw_data.get('@odata.nextLink')
-            cache['saved'] = cache[cache_type]
+            cache[cache_type] = self._get_instances_from_server(instance)
         return cache[cache_type]

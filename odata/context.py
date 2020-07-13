@@ -115,7 +115,7 @@ class Context:
         self.log.info(u'Updating existing entity: {0}'.format(entity))
 
         url = es.instance_url
-
+        saved_data = None
         if len([i for i in patch_data if not i.startswith('@')]):
             saved_data = self.connection.execute_patch(url, patch_data)
 
