@@ -62,6 +62,7 @@ class Context:
         entity.__odata__.reset()
         if data is not None:
             entity.__odata__.update(data)
+            entity.__odata__.persisted = True
         self.log.info(u'Success')
         return entity
 
