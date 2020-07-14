@@ -36,6 +36,8 @@ class EntityState(object):
 
     def update(self, other):
         self.data.update(other)
+        if self.id is not None:
+            self.persisted = True
     # /dictionary access
 
     def __repr__(self):
