@@ -20,6 +20,8 @@ from .enumtype import EnumType, EnumTypeProperty
 
 class MetaData(object):
 
+    cached_entity_sets = {}
+    cached_metadata = {}
     log = logging.getLogger('odata.metadata')
     namespaces = {
         'edm': 'http://docs.oasis-open.org/odata/ns/edm',
@@ -210,7 +212,12 @@ class MetaData(object):
                 self.service.functions[function['name']] = function_class()
 
     def get_entity_sets(self, base=None):
-        document = self.load_document()
+        if base not in MetaData.cached_entity_sets:
+            MetaData.cached_entity_sets[base] = self._get_entity_sets(base)
+        return MetaData.cached_entity_sets[base]
+
+    def _get_entity_sets(self, base=None):
+        document = self.load_document(self.url)
         schemas, entity_sets, actions, functions = self.parse_document(document)
 
         base_class = base or declarative_base()
@@ -249,10 +256,12 @@ class MetaData(object):
         self.log.info('Loaded {0} entity sets, total {1} types'.format(len(sets), len(all_types)))
         return base_class, sets, all_types
 
-    def load_document(self):
-        self.log.info('Loading metadata document: {0}'.format(self.url))
-        response = self.connection._do_get(self.url)
-        return ET.fromstring(response.content)
+    def load_document(self, url):
+        if url not in MetaData.cached_metadata:
+            self.log.info('Loading metadata document: {0}'.format(url))
+            response = self.connection._do_get(url)
+            MetaData.cached_metadata[url] = ET.fromstring(response.content)
+        return MetaData.cached_metadata[url]
 
     def _parse_action(self, xmlq, action_element, schema_name):
         action = {
