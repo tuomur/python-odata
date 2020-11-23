@@ -47,6 +47,11 @@ class MetaData(object):
         self.connection = service.default_context.connection
         self.service = service
 
+    @classmethod
+    def flush_cache(cls):
+        cls.cached_entity_sets = {}
+        cls.cached_metadata = {}
+
     def property_type_to_python(self, edm_type):
         return self.property_types.get(edm_type, StringProperty)
 

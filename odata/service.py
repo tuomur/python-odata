@@ -158,6 +158,9 @@ class ODataService(object):
         """
         return Context(auth=auth, session=session)
 
+    def flush(self):
+        MetaData.flush_cache()
+
     def describe(self, entity):
         """
         Print a debug screen of an entity instance
