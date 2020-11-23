@@ -158,7 +158,8 @@ class ODataService(object):
         """
         return Context(auth=auth, session=session)
 
-    def flush(self):
+    @classmethod
+    def flush_cache(cls):
         MetaData.flush_cache()
 
     def describe(self, entity):
