@@ -48,6 +48,7 @@ class Context:
         url = entity.__odata__.instance_url
         self.connection.execute_delete(url)
         entity.__odata__.persisted = False
+        entity.__odata__.persisted_id = None
         self.log.debug(u'Success')
 
     def get(self, entity):

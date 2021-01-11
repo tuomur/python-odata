@@ -73,6 +73,7 @@ class EntityState(object):
     def reset(self):
         self.dirty = []
         self.nav_cache = {}
+        self.persisted_id = None
 
     @property
     def id(self):
