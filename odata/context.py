@@ -63,6 +63,7 @@ class Context:
         if data is not None:
             entity.__odata__.update(data)
             entity.__odata__.persisted = True
+            entity.__odata__.persisted_id = entity.__odata__.id
         self.log.debug(u'Success')
         return entity
 
@@ -108,6 +109,7 @@ class Context:
 
         if saved_data is not None:
             es.update(saved_data)
+            es.persisted_id = es.id
 
         self.log.debug(u'Success')
 

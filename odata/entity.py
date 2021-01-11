@@ -144,6 +144,7 @@ class EntityBase(object):
                 i.__odata__[prop.name] = raw_data.get(prop.name)
 
             i.__odata__.persisted = True
+            i.__odata__.persisted_id = i.__odata__.id
         else:
             for prop_name, prop in es.properties:
                 if prop_name in data.keys():

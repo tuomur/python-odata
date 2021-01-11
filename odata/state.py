@@ -20,6 +20,7 @@ class EntityState(object):
         self.connection = None
         # does this object exist serverside
         self.persisted = False
+        self.persisted_id = None
 
     # dictionary access
     def __getitem__(self, item):
@@ -75,6 +76,8 @@ class EntityState(object):
 
     @property
     def id(self):
+        if self.persisted_id:
+            return self.persisted_id
         ids = []
         entity_name = self.entity.__odata_collection__
         if entity_name is None:
