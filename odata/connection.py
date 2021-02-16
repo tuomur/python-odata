@@ -38,6 +38,9 @@ class ODataConnection(object):
         self.auth = auth
         self.log = logging.getLogger('odata.connection')
 
+    def __del__(self):
+        self.session.close()
+
     def _apply_options(self, kwargs):
         kwargs['timeout'] = self.timeout
 
@@ -108,12 +111,15 @@ class ODataConnection(object):
         self._handle_odata_error(response)
         response_ct = response.headers.get('content-type', '')
         if response.status_code == requests.codes.no_content:
+            response.close()
             return
         if 'application/json' in response_ct:
             data = response.json()
+            response.close()
             return data
         else:
             msg = u'Unsupported response Content-Type: {0}'.format(response_ct)
+            response.close()
             raise ODataError(msg)
 
     def execute_post(self, url, data, params=None):
@@ -131,9 +137,12 @@ class ODataConnection(object):
         self._handle_odata_error(response)
         response_ct = response.headers.get('content-type', '')
         if response.status_code == requests.codes.no_content:
+            response.close()
             return
         if 'application/json' in response_ct:
-            return response.json()
+            resp_data = response.json()
+            response.close()
+            return resp_data
         # no exceptions here, POSTing to Actions may not return data
 
     def execute_patch(self, url, data):
@@ -149,6 +158,7 @@ class ODataConnection(object):
 
         response = self._do_patch(url, data=data, headers=headers)
         self._handle_odata_error(response)
+        response.close()
 
     def execute_delete(self, url):
         headers = {}
@@ -158,3 +168,4 @@ class ODataConnection(object):
 
         response = self._do_delete(url, headers=headers)
         self._handle_odata_error(response)
+        response.close()
