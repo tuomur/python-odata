@@ -40,6 +40,7 @@ class ODataConnection(object):
 
     def __del__(self):
         self.session.close()
+        self.log.info(u'Closed session')
 
     def _apply_options(self, kwargs):
         kwargs['timeout'] = self.timeout
@@ -100,72 +101,91 @@ class ODataConnection(object):
             raise err
 
     def execute_get(self, url, params=None):
-        headers = {}
-        headers.update(self.base_headers)
+        try:
+            response = None
+            headers = {}
+            headers.update(self.base_headers)
 
-        self.log.info(u'GET {0}'.format(url))
-        if params:
-            self.log.info(u'Query: {0}'.format(params))
+            self.log.info(u'GET {0}'.format(url))
+            if params:
+                self.log.info(u'Query: {0}'.format(params))
 
-        response = self._do_get(url, params=params, headers=headers)
-        self._handle_odata_error(response)
-        response_ct = response.headers.get('content-type', '')
-        if response.status_code == requests.codes.no_content:
-            response.close()
-            return
-        if 'application/json' in response_ct:
-            data = response.json()
-            response.close()
-            return data
-        else:
-            msg = u'Unsupported response Content-Type: {0}'.format(response_ct)
-            response.close()
-            raise ODataError(msg)
+            response = self._do_get(url, params=params, headers=headers)
+            self._handle_odata_error(response)
+            response_ct = response.headers.get('content-type', '')
+            if response.status_code == requests.codes.no_content:
+                return
+            if 'application/json' in response_ct:
+                return response.json()
+            else:
+                msg = u'Unsupported response Content-Type: {0}'.format(response_ct)
+                raise ODataError(msg)
+        except:
+            if response:
+                response.close()
+                self.log.info(u'Closed response after failed request')
+            raise
 
     def execute_post(self, url, data, params=None):
-        headers = {
-            'Content-Type': 'application/json',
-        }
-        headers.update(self.base_headers)
+        try:
+            response = None
+            headers = {
+                'Content-Type': 'application/json',
+            }
+            headers.update(self.base_headers)
 
-        data = json.dumps(data)
+            data = json.dumps(data)
 
-        self.log.info(u'POST {0}'.format(url))
-        self.log.info(u'Payload: {0}'.format(data))
+            self.log.info(u'POST {0}'.format(url))
+            self.log.info(u'Payload: {0}'.format(data))
 
-        response = self._do_post(url, data=data, headers=headers, params=params)
-        self._handle_odata_error(response)
-        response_ct = response.headers.get('content-type', '')
-        if response.status_code == requests.codes.no_content:
-            response.close()
-            return
-        if 'application/json' in response_ct:
-            resp_data = response.json()
-            response.close()
-            return resp_data
-        # no exceptions here, POSTing to Actions may not return data
+            response = self._do_post(url, data=data, headers=headers, params=params)
+            self._handle_odata_error(response)
+            response_ct = response.headers.get('content-type', '')
+            if response.status_code == requests.codes.no_content:
+                return
+            if 'application/json' in response_ct:
+                return response.json()
+            # no exceptions here, POSTing to Actions may not return data
+        except:
+            if response:
+                response.close()
+                self.log.info(u'Closed response after failed request')
+            raise
 
     def execute_patch(self, url, data):
-        headers = {
-            'Content-Type': 'application/json',
-        }
-        headers.update(self.base_headers)
+        try:
+            response = None
+            headers = {
+                'Content-Type': 'application/json',
+            }
+            headers.update(self.base_headers)
 
-        data = json.dumps(data)
+            data = json.dumps(data)
 
-        self.log.info(u'PATCH {0}'.format(url))
-        self.log.info(u'Payload: {0}'.format(data))
+            self.log.info(u'PATCH {0}'.format(url))
+            self.log.info(u'Payload: {0}'.format(data))
 
-        response = self._do_patch(url, data=data, headers=headers)
-        self._handle_odata_error(response)
-        response.close()
+            response = self._do_patch(url, data=data, headers=headers)
+            self._handle_odata_error(response)
+        except:
+            if response:
+                response.close()
+                self.log.info(u'Closed response after failed request')
+            raise
 
     def execute_delete(self, url):
-        headers = {}
-        headers.update(self.base_headers)
+        try:
+            response = None
+            headers = {}
+            headers.update(self.base_headers)
 
-        self.log.info(u'DELETE {0}'.format(url))
+            self.log.info(u'DELETE {0}'.format(url))
 
-        response = self._do_delete(url, headers=headers)
-        self._handle_odata_error(response)
-        response.close()
+            response = self._do_delete(url, headers=headers)
+            self._handle_odata_error(response)
+        except:
+            if response:
+                response.close()
+                self.log.info(u'Closed response after failed request')
+            raise
