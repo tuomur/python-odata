@@ -92,6 +92,9 @@ class ODataConnection(object):
                         ie = odata_error['innererror']
                         detailed_message = ie.get('message') or detailed_message
 
+            response.close()
+            self.log.info(u'Closed response on failure with HTTP status {0}'.format(code))
+
             msg = ' | '.join([status_code, code, message, detailed_message])
             err = ODataError(msg)
             err.status_code = status_code
