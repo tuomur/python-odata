@@ -121,10 +121,11 @@ class ODataConnection(object):
                 msg = u'Unsupported response Content-Type: {0}'.format(response_ct)
                 raise ODataError(msg)
         except:
+            raise
+        finally:
             if response:
                 response.close()
-                self.log.info(u'Closed response after failed request')
-            raise
+                self.log.info(u'Closed GET response for {0}'.format(url))
 
     def execute_post(self, url, data, params=None):
         try:
@@ -148,10 +149,11 @@ class ODataConnection(object):
                 return response.json()
             # no exceptions here, POSTing to Actions may not return data
         except:
+            raise
+        finally:
             if response:
                 response.close()
-                self.log.info(u'Closed response after failed request')
-            raise
+                self.log.info(u'Closed POST response for {0}'.format(url))
 
     def execute_patch(self, url, data):
         try:
@@ -169,10 +171,11 @@ class ODataConnection(object):
             response = self._do_patch(url, data=data, headers=headers)
             self._handle_odata_error(response)
         except:
+            raise
+        finally:
             if response:
                 response.close()
-                self.log.info(u'Closed response after failed request')
-            raise
+                self.log.info(u'Closed PATCH response for {0}'.format(url))
 
     def execute_delete(self, url):
         try:
@@ -185,7 +188,8 @@ class ODataConnection(object):
             response = self._do_delete(url, headers=headers)
             self._handle_odata_error(response)
         except:
+            raise
+        finally:
             if response:
                 response.close()
-                self.log.info(u'Closed response after failed request')
-            raise
+                self.log.info(u'Closed DELETE response for {0}'.format(url))
