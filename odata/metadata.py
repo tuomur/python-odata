@@ -269,9 +269,10 @@ class MetaData(object):
             # bound actions are named SchemaNamespace.ActionName
             action['fully_qualified_name'] = '.'.join([schema_name, action['name']])
 
-        for parameter_element in xmlq(action_element, 'edm:Parameter'):
+        for i, parameter_element in enumerate(xmlq(action_element, 'edm:Parameter')):
             parameter_name = parameter_element.attrib['Name']
-            if action['is_bound'] and parameter_name == 'bindingParameter':
+
+            if i == 0:
                 action['is_bound_to'] = parameter_element.attrib['Type']
                 continue
 
