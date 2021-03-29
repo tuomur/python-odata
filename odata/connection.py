@@ -88,7 +88,7 @@ class ODataConnection(object):
                         ie = odata_error['innererror']
                         detailed_message = ie.get('message') or detailed_message
 
-            msg = ' | '.join([status_code, code, message, detailed_message])
+            msg = ' | '.join([str(status_code), str(code), str(message), str(detailed_message)])
             err = ODataError(msg)
             err.status_code = status_code
             err.code = code
