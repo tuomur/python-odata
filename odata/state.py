@@ -171,21 +171,23 @@ class EntityState(object):
             if prop.is_computed_value:
                 continue
 
-            insert_data[prop.name] = es[prop.name]
+            if es.data[prop.name] is not None:
+                insert_data[prop.name] = es.data[prop.name]
 
         # Allow pk properties only if they have values
         for _, pk_prop in es.primary_key_properties:
-            if insert_data[pk_prop.name] is None:
+            if pk_prop.name in insert_data and insert_data[pk_prop.name] is None:
                 insert_data.pop(pk_prop.name)
 
         # Deep insert from nav properties
         for prop_name, prop in es.navigation_properties:
-            if prop.foreign_key:
-                insert_data.pop(prop.foreign_key, None)
 
             value = getattr(entity, prop_name, None)
             """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
             if value is not None:
+
+                if prop.foreign_key:
+                    insert_data.pop(prop.foreign_key, None)
 
                 if prop.is_collection:
                     binds = []
