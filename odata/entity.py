@@ -125,6 +125,26 @@ class EntityBase(object):
 
         return i
 
+    @classmethod
+    def create(cls, raw_data):
+        i = super(EntityBase, cls).__new__(cls)
+        i.__odata__ = es = EntityState(i)
+
+        for prop_name, prop in es.navigation_properties:
+            if prop.name in raw_data:
+                expanded_data = raw_data.pop(prop.name)
+                if prop.is_collection:
+                    es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(expanded_data))
+                else:
+                    es.nav_cache[prop.name] = dict(single=prop.instances_from_data(expanded_data))
+
+        for prop_name, prop in es.properties:
+            i.__odata__[prop.name] = raw_data.get(prop.name)
+
+        i.__odata__.persisted = False
+
+        return i
+
     def __repr__(self):
         clsname = self.__class__.__name__
         display_string = self.__odata__.id or clsname
