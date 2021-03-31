@@ -49,7 +49,7 @@ custom defined entities. Replacing the default types is not supported.
 Types
 -----
 """
-
+import copy
 from decimal import Decimal
 import datetime
 
@@ -98,7 +98,7 @@ class PropertyBase(object):
                 data = []
                 for i in raw_data:
                     data.append(self.deserialize(i))
-                return data
+                return copy.deepcopy(data)
             else:
                 return self.deserialize(raw_data)
         else:
