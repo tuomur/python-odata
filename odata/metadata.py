@@ -249,9 +249,11 @@ class MetaData(object):
         self.log.info('Loaded {0} entity sets, total {1} types'.format(len(sets), len(all_types)))
         return base_class, sets, all_types
 
-    def load_document(self):
+    def load_document(self, raw_mode=False):
         self.log.info('Loading metadata document: {0}'.format(self.url))
         response = self.connection._do_get(self.url)
+        if raw_mode:
+            return response.content.decode("utf-8")
         return ET.fromstring(response.content)
 
     def _parse_action(self, xmlq, action_element, schema_name):
