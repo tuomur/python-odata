@@ -251,10 +251,17 @@ class MetaData(object):
 
     def load_document(self, raw_mode=False):
         self.log.info('Loading metadata document: {0}'.format(self.url))
-        response = self.connection._do_get(self.url)
+
+        if self.service.schema_path is None:
+            response = self.connection._do_get(self.url)
+            response = response.content
+        else:
+            with open(self.service.schema_path) as fp:
+                response = fp.read()
+
         if raw_mode:
-            return response.content.decode("utf-8")
-        return ET.fromstring(response.content)
+            return response.decode("utf-8")
+        return ET.fromstring(response)
 
     def _parse_action(self, xmlq, action_element, schema_name):
         action = {
