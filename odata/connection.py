@@ -40,7 +40,6 @@ class ODataConnection(object):
 
     def __del__(self):
         self.session.close()
-        self.log.info(u'Closed session')
 
     def _apply_options(self, kwargs):
         kwargs['timeout'] = self.timeout
