@@ -103,7 +103,6 @@ class Context:
 
         es = entity.__odata__
         insert_data = es.data_for_insert()
-        self.log.info(u'DATA FOR INSERT: {0}'.format(data))
         saved_data = self.connection.execute_post(url, insert_data)
         es.reset()
         es.connection = self.connection

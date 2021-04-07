@@ -3,15 +3,18 @@
 from __future__ import print_function
 import os
 import inspect
+import logging
 import re
 from collections import OrderedDict
 
 from odata.property import PropertyBase, NavigationProperty
+import odata
 
 
 class EntityState(object):
 
     def __init__(self, entity):
+        self.log = logging.getLogger('odata.state')
         """:type entity: EntityBase """
         self.entity = entity
         self.dirty = []
@@ -173,6 +176,7 @@ class EntityState(object):
         insert_data['@odata.type'] = entity.__odata_type__
 
         es = entity.__odata__
+
         for _, prop in es.properties:
             if prop.is_computed_value:
                 continue
@@ -186,8 +190,6 @@ class EntityState(object):
 
         # Deep insert from nav properties
         for prop_name, prop in es.navigation_properties:
-            if prop.foreign_key:
-                insert_data.pop(prop.foreign_key, None)
 
             value = getattr(entity, prop_name, None)
             """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
@@ -213,7 +215,7 @@ class EntityState(object):
                 else:
                     if value.__odata__.id:
                         insert_data['{0}@odata.bind'.format(prop.name)] = value.__odata__.id
-                    else:
+                    elif isinstance(value, odata.entity.EntityBase):
                         insert_data[prop.name] = self._clean_new_entity(value)
 
         for _, prop in es.properties:
