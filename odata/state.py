@@ -16,7 +16,7 @@ class EntityState(object):
         self.entity = entity
         self.dirty = []
         self.nav_cache = {}
-        self.data = {}
+        self.data = OrderedDict()
         self.connection = None
         # does this object exist serverside
         self.persisted = False

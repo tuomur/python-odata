@@ -131,6 +131,7 @@ class ODataConnection(object):
                 self.log.info(u'Closed GET response for {0}'.format(url))
 
     def execute_post(self, url, data, params=None):
+        self.log.info(u'DATA: {0}'.format(data))
         try:
             response = None
             headers = {
