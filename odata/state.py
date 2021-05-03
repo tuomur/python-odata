@@ -164,10 +164,18 @@ class EntityState(object):
                 """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
                 if value is not None:
                     key = '{0}@odata.bind'.format(prop.name)
-                    if prop.is_collection:
-                        update_data[key] = [i.__odata__.id for i in value]
+                    if prop.is_collection and value:
+                        ids = [i.__odata__.id for i in value if i.__odata__.id is not None]
+                        if ids:
+                            update_data[key] = ids 
+                        objs = [self._clean_new_entity(i) for i in value if i.__odata__.id is None]
+                        if objs:
+                            update_data[prop.name] = objs
                     else:
-                        update_data[key] = value.__odata__.id
+                        if value.__odata__.id:
+                            update_data[key] = value.__odata__.id
+                        else:
+                            update_data[prop.name] = value
         return update_data
 
     def _clean_new_entity(self, entity):
