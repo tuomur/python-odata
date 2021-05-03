@@ -36,7 +36,7 @@ class EntityState(object):
         return item in self.data
 
     def get(self, key, default):
-        return self.data.get(key, default=default)
+        return self.data.get(key, default)
 
     def update(self, other):
         self.data.update(other)
