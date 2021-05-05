@@ -189,6 +189,12 @@ class EntityState(object):
 
         es = entity.__odata__
 
+        for _, pk_prop in es.primary_key_properties:
+            update_data[pk_prop.name] = es[pk_prop.name]
+        
+        if '@odata.etag' in es:
+            update_data['@odata.etag'] = es['@odata.etag']
+
         for _, prop in es.dirty_properties:
             if prop.is_computed_value:
                 continue
