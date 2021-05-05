@@ -146,39 +146,12 @@ class EntityState(object):
             self.dirty.append(prop.name)
 
     def data_for_insert(self):
-        return self._clean_new_entity(self.entity)
+        return self._new_entity(self.entity)
 
     def data_for_update(self):
-        update_data = OrderedDict()
-        update_data['@odata.type'] = self.entity.__odata_type__
+        return self._updated_entity(self.entity)
 
-        for _, prop in self.dirty_properties:
-            if prop.is_computed_value:
-                continue
-
-            update_data[prop.name] = self.data[prop.name]
-
-        for prop_name, prop in self.navigation_properties:
-            if prop.name in self.dirty:
-                value = getattr(self.entity, prop_name, None)  # get the related object
-                """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
-                if value is not None:
-                    key = '{0}@odata.bind'.format(prop.name)
-                    if prop.is_collection and value:
-                        ids = [i.__odata__.id for i in value if i.__odata__.id is not None]
-                        if ids:
-                            update_data[key] = ids 
-                        objs = [self._clean_new_entity(i) for i in value if i.__odata__.id is None]
-                        if objs:
-                            update_data[prop.name] = objs
-                    else:
-                        if value.__odata__.id:
-                            update_data[key] = value.__odata__.id
-                        else:
-                            update_data[prop.name] = value
-        return update_data
-
-    def _clean_new_entity(self, entity):
+    def _new_entity(self, entity):
         """:type entity: odata.entity.EntityBase """
         insert_data = OrderedDict()
         insert_data['@odata.type'] = entity.__odata_type__
@@ -201,30 +174,7 @@ class EntityState(object):
 
             value = getattr(entity, prop_name, None)
             """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
-            if value is not None:
-
-                if prop.is_collection:
-                    binds = []
-
-                    # binds must be added first
-                    for i in [i for i in value if i.__odata__.id]:
-                        binds.append(i.__odata__.id)
-
-                    if len(binds):
-                        insert_data['{0}@odata.bind'.format(prop.name)] = binds
-
-                    new_entities = []
-                    for i in [i for i in value if i.__odata__.id is None]:
-                        new_entities.append(self._clean_new_entity(i))
-
-                    if len(new_entities):
-                        insert_data[prop.name] = new_entities
-
-                else:
-                    if value.__odata__.id:
-                        insert_data['{0}@odata.bind'.format(prop.name)] = value.__odata__.id
-                    elif isinstance(value, odata.entity.EntityBase):
-                        insert_data[prop.name] = self._clean_new_entity(value)
+            insert_data = self._add_or_update_associated(insert_data, prop, value)
 
         for _, prop in es.properties:
             if prop.name in insert_data:
@@ -232,3 +182,78 @@ class EntityState(object):
                     insert_data.pop(prop.name)
 
         return insert_data
+
+    def _updated_entity(self, entity):
+        update_data = OrderedDict()
+        update_data['@odata.type'] = self.entity.__odata_type__
+
+        es = entity.__odata__
+
+        for _, prop in es.dirty_properties:
+            if prop.is_computed_value:
+                continue
+
+            update_data[prop.name] = es[prop.name]
+
+        for prop_name, prop in es.navigation_properties:
+            if prop.name in es.dirty:
+                value = getattr(entity, prop_name, None)  # get the related object
+                """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
+                update_data = self._add_or_update_associated(update_data, prop, value)
+
+        return update_data
+
+    def _add_or_update_associated(self, data, prop, value):
+        if value is None:
+            return data
+        if prop.is_collection:
+            data = self._add_or_update_associated_collection(data, prop, value)
+        else:
+            data = self._add_or_update_associated_instance(data, prop, value)
+        return data
+
+    def _add_or_update_associated_collection(self, data, prop, value):
+
+        def is_new(entity):
+            if entity.__odata__.id is None:
+                return True
+            return False
+
+        def is_dirty(entity):
+            if is_new(entity):
+                return False
+            elif hasattr(entity.__odata__, 'dirty') and entity.__odata__.dirty:
+                return True
+            return False
+
+        def is_persisted(entity):
+            return (not is_new(entity) and not is_dirty(entity))
+
+        ids = [i.__odata__.id for i in value if is_persisted(i)]
+        if ids:
+            data['{0}@odata.bind'.format(prop.name)] = ids
+
+        upd_objs = [self._updated_entity(i) for i in value if is_dirty(i)]
+
+        new_objs = [self._new_entity(i) for i in value if is_new(i)]
+
+        if upd_objs or new_objs:
+            data[prop.name] = upd_objs + new_objs
+
+        return data
+
+    def _add_or_update_associated_instance(self, data, prop, value):
+        if isinstance(value, odata.entity.EntityBase):
+            if value.persisted is False:
+                data[prop.name] = self._new_entity(value)
+
+            elif value.dirty:
+                data[prop.name] = self._updated_entity(value)
+
+            elif value.__odata__.id:
+                data['{0}@odata.bind'.format(prop.name)] = value.__odata__.id
+
+        elif value.__odata__.id:
+            data['{0}@odata.bind'.format(prop.name)] = value.__odata__.id
+
+        return data
