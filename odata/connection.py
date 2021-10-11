@@ -78,6 +78,7 @@ class ODataConnection(object):
             response_ct = response.headers.get('content-type', '')
 
             if 'application/json' in response_ct:
+                self.log.debug(u'JSON: {0}'.format(response.json()))
                 errordata = response.json()
 
                 if 'error' in errordata:
@@ -118,6 +119,7 @@ class ODataConnection(object):
             if response.status_code == requests.codes.no_content:
                 return
             if 'application/json' in response_ct:
+                self.log.debug(u'JSON: {0}'.format(response.json()))
                 return response.json()
             else:
                 msg = u'Unsupported response Content-Type: {0}'.format(response_ct)
@@ -148,6 +150,7 @@ class ODataConnection(object):
             if response.status_code == requests.codes.no_content:
                 return
             if 'application/json' in response_ct:
+                self.log.debug(u'JSON: {0}'.format(response.json()))
                 return response.json()
             # no exceptions here, POSTing to Actions may not return data
         except:
@@ -172,6 +175,9 @@ class ODataConnection(object):
 
             response = self._do_patch(url, data=data, headers=headers)
             self._handle_odata_error(response)
+            response_ct = response.headers.get('content-type', '')
+            if 'application/json' in response_ct:
+                self.log.debug(u'JSON: {0}'.format(response.json()))
         except:
             raise
         finally:
@@ -189,6 +195,9 @@ class ODataConnection(object):
 
             response = self._do_delete(url, headers=headers)
             self._handle_odata_error(response)
+            response_ct = response.headers.get('content-type', '')
+            if 'application/json' in response_ct:
+                self.log.debug(u'JSON: {0}'.format(response.json()))
         except:
             raise
         finally:
