@@ -24,7 +24,7 @@ def catch_requests_errors(fn):
 class ODataConnection(object):
 
     base_headers = {
-        'Accept': 'application/json',
+        'Accept': 'application/json; odata.metadata=full',
         'OData-Version': '4.0',
         'User-Agent': 'python-odata {0}'.format(version),
     }
