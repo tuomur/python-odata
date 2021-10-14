@@ -131,9 +131,10 @@ class EntityBase(object):
         if 'from_data' in kwargs:
             raw_data = kwargs.pop('from_data')
 
-            for k, v in raw_data.items():
-                if '@odata' in k:
-                    i.__odata__[k] = v
+            if raw_data:
+                for k, v in raw_data.items():
+                    if '@odata' in k:
+                        i.__odata__[k] = v
 
             # check for values from $expand
             for prop_name, prop in es.navigation_properties:
