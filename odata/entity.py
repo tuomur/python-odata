@@ -136,17 +136,17 @@ class EntityBase(object):
                     if '@odata' in k:
                         i.__odata__[k] = v
 
-            # check for values from $expand
-            for prop_name, prop in es.navigation_properties:
-                if prop.name in raw_data:
-                    expanded_data = raw_data.pop(prop.name)
-                    if prop.is_collection:
-                        es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(expanded_data))
-                    else:
-                        es.nav_cache[prop.name] = dict(single=prop.instances_from_data(expanded_data))
+                # check for values from $expand
+                for prop_name, prop in es.navigation_properties:
+                    if prop.name in raw_data:
+                        expanded_data = raw_data.pop(prop.name)
+                        if prop.is_collection:
+                            es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(expanded_data))
+                        else:
+                            es.nav_cache[prop.name] = dict(single=prop.instances_from_data(expanded_data))
 
-            for prop_name, prop in es.properties:
-                i.__odata__[prop.name] = raw_data.get(prop.name)
+                for prop_name, prop in es.properties:
+                    i.__odata__[prop.name] = raw_data.get(prop.name)
 
             i.__odata__.persisted = True
             i.__odata__.persisted_id = i.__odata__.id
