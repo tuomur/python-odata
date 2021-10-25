@@ -6,6 +6,12 @@ import inspect
 import logging
 import re
 from collections import OrderedDict
+try:
+    # noinspection PyUnresolvedReferences
+    from urllib.parse import urljoin
+except ImportError:
+    # noinspection PyUnresolvedReferences
+    from urlparse import urljoin
 
 from odata.property import PropertyBase, NavigationProperty
 import odata
@@ -24,6 +30,7 @@ class EntityState(object):
         # does this object exist serverside
         self.persisted = False
         self.persisted_id = None
+        self.odata_scope = None
 
     # dictionary access
     def __getitem__(self, item):
@@ -104,8 +111,15 @@ class EntityState(object):
     @property
     def instance_url(self):
         if self.id:
-            url = re.sub(self.entity.__odata_collection__, '', self.entity.__odata_url__())
-            return url + self.id
+            odata_id = self.get('@odata.id', None)
+            if self.odata_scope:
+                url = re.sub(self.entity.__odata_collection__, '', self.odata_scope)
+                return urljoin(url, self.id)
+            elif odata_id and self.id in odata_id:
+                return urljoin(self.entity.__odata_service__.url, odata_id)
+            else:
+                url = re.sub(self.entity.__odata_collection__, '', self.entity.__odata_url__())
+                return urljoin(url, self.id)
 
     @property
     def properties(self):
@@ -150,6 +164,10 @@ class EntityState(object):
 
     def data_for_update(self):
         return self._updated_entity(self.entity)
+
+    def set_scope(self, odata_scope):
+        if odata_scope:
+            self.odata_scope = odata_scope
 
     def _new_entity(self, entity):
         """:type entity: odata.entity.EntityBase """
