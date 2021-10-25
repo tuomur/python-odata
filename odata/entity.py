@@ -151,6 +151,13 @@ class EntityBase(object):
             i.__odata__.persisted = True
             i.__odata__.persisted_id = i.__odata__.id
         else:
+            for prop_name, prop in es.navigation_properties:
+                if prop_name in data.keys():
+                    if prop.is_collection:
+                        es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(data[prop_name]))
+                    else:
+                        es.nav_cache[prop.name] = dict(single=prop.instances_from_data(data[prop_name]))
+
             for prop_name, prop in es.properties:
                 if prop_name in data.keys():
                     i.__odata__[prop.name] = data[prop_name]
