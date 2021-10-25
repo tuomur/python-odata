@@ -119,5 +119,6 @@ class NavigationProperty(object):
                     cache['single'] = self.instances_from_data(raw_data)
                 else:
                     cache['single'] = None
-            cache['single'].__odata__.set_scope(url) if cache['single']
+            if cache['single']
+                cache['single'].__odata__.set_scope(url)
             return cache['single']
