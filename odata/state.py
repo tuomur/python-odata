@@ -8,10 +8,10 @@ import re
 from collections import OrderedDict
 try:
     # noinspection PyUnresolvedReferences
-    from urllib.parse import urljoin
+    from urllib.parse import urljoin, urlparse
 except ImportError:
     # noinspection PyUnresolvedReferences
-    from urlparse import urljoin
+    from urlparse import urljoin, urlparse
 
 from odata.property import PropertyBase, NavigationProperty
 import odata
@@ -124,7 +124,8 @@ class EntityState(object):
                 url = re.sub(self.entity.__odata_collection__, '', self.entity.__odata_url__())
                 return urljoin(url, self.id)
         elif odata_id and odata_id.startswith('http'):
-            return odata_id
+            odata_id = urlparse(odata_id).path.split('/')[-1]
+            return urljoin(self.entity.__odata_service__.url, odata_id)
         elif odata_id:
             return urljoin(self.entity.__odata_service__.url, odata_id)
 
