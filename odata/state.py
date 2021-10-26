@@ -110,16 +110,23 @@ class EntityState(object):
 
     @property
     def instance_url(self):
+        odata_id = self.get('@odata.id', None)
         if self.id:
-            odata_id = self.get('@odata.id', None)
             if self.odata_scope:
-                url = re.sub(self.entity.__odata_collection__, '', self.odata_scope)
-                return urljoin(url, self.id)
+                if self.odata_scope.endswith(self.entity.__odata_collection__):
+                    url = re.sub(self.entity.__odata_collection__, '', self.odata_scope)
+                    return urljoin(url, self.id)
+                else:
+                    return self.odata_scope
             elif odata_id and self.id in odata_id:
                 return urljoin(self.entity.__odata_service__.url, odata_id)
             else:
                 url = re.sub(self.entity.__odata_collection__, '', self.entity.__odata_url__())
                 return urljoin(url, self.id)
+        elif odata_id and odata_id.startswith('http'):
+            return odata_id
+        elif odata_id:
+            return urljoin(self.entity.__odata_service__.url, odata_id)
 
     @property
     def properties(self):
