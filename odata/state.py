@@ -119,11 +119,12 @@ class EntityState(object):
                 else:
                     return self.odata_scope
             elif odata_id and self.id in odata_id:
+                url = re.sub(self.entity.__odata_collection__, '', self.entity.__odata_url__())
                 if odata_id.startswith('http'):
                     odata_id = urlparse(odata_id).path.split('/')[-1]
-                    return urljoin(self.entity.__odata_service__.url, odata_id)
+                    return urljoin(url, odata_id)
                 else:
-                    return urljoin(self.entity.__odata_service__.url, odata_id)
+                    return urljoin(url, odata_id)
             else:
                 url = re.sub(self.entity.__odata_collection__, '', self.entity.__odata_url__())
                 return urljoin(url, self.id)
