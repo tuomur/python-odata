@@ -94,7 +94,11 @@ class Context:
 
         :type entity: EntityBase
         """
-        url = entity.__odata_url__()
+        
+        if entity.__odata__.odata_scope:
+            url = entity.__odata__.odata_scope
+        else:
+            url = entity.__odata_url__()
         if url is None:
             msg = 'Cannot insert Entity that does not belong to EntitySet: {0}'.format(entity)
             raise ODataError(msg)
