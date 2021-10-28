@@ -47,6 +47,7 @@ class NavigationProperty(object):
         self.name = name
         self.entitycls = entitycls
         self.is_collection = collection
+        self.is_computed_value = False
         if isinstance(foreign_key, PropertyBase):
             self.foreign_key = foreign_key.name
         else:
