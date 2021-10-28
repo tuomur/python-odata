@@ -162,6 +162,9 @@ class EntityState(object):
         for prop_name, prop in self.properties:
             if prop.name in self.dirty:
                 rv.append((prop_name, prop))
+        for prop_name, prop in self.navigation_properties:
+            if prop.name in self.dirty:
+                rv.append((prop_name, prop))
         return rv
 
     def set_property_dirty(self, prop):
