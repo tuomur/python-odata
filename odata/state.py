@@ -228,7 +228,7 @@ class EntityState(object):
         for _, prop in es.dirty_properties:
             if prop.is_computed_value:
                 continue
-            if prop.name in dict(es.navigation_properties.keys()):
+            if prop.name in dict(es.navigation_properties).keys():
                 continue
 
             update_data[prop.name] = es[prop.name]
