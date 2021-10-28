@@ -228,6 +228,8 @@ class EntityState(object):
         for _, prop in es.dirty_properties:
             if prop.is_computed_value:
                 continue
+            if prop.name in es.navigation_properties:
+                continue
 
             update_data[prop.name] = es[prop.name]
 
