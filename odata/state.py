@@ -87,7 +87,7 @@ class EntityState(object):
 
     @property
     def id(self):
-        if self.persisted_id:
+        if self.persisted and self.persisted_id:
             return self.persisted_id
         ids = []
         entity_name = self.entity.__odata_collection__
@@ -100,6 +100,7 @@ class EntityState(object):
                 ids.append((prop, str(prop.escape_value(value))))
             else:
                 return
+
         if len(ids) == 1:
             key_value = ids[0][1]
             return u'{0}({1})'.format(entity_name,
