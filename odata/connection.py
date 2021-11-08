@@ -178,6 +178,7 @@ class ODataConnection(object):
             response_ct = response.headers.get('content-type', '')
             if 'application/json' in response_ct:
                 self.log.debug(u'JSON: {0}'.format(response.json()))
+                return response.json()
         except:
             raise
         finally:
