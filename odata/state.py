@@ -98,6 +98,8 @@ class EntityState(object):
             value = self.data.get(prop.name)
             if value is not None:
                 ids.append((prop, str(prop.escape_value(value))))
+            else:
+                return
         if len(ids) == 1:
             key_value = ids[0][1]
             return u'{0}({1})'.format(entity_name,
