@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Dict
 
 """
 Entity classes
@@ -156,7 +157,10 @@ class EntityBase(object):
                     if prop.is_collection:
                         es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(data[prop_name]))
                     else:
-                        es.nav_cache[prop.name] = dict(single=prop.instances_from_data(data[prop_name]))
+                        if isinstance(data[prop_name], Dict):
+                            es.nav_cache[prop.name] = dict(single=prop.instances_from_data(data[prop_name]))
+                        else:
+                            es.nav_cache[prop.name] = dict(single=data[prop_name])
 
             for prop_name, prop in es.properties:
                 if prop_name in data.keys():

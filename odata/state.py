@@ -204,7 +204,6 @@ class EntityState(object):
 
         # Deep insert from nav properties
         for prop_name, prop in es.navigation_properties:
-
             value = getattr(entity, prop_name, None)
             """:type : None | odata.entity.EntityBase | list[odata.entity.EntityBase]"""
             insert_data = self._add_or_update_associated(insert_data, prop, value)
@@ -270,7 +269,7 @@ class EntityState(object):
         def is_persisted(entity):
             return (not is_new(entity) and not is_dirty(entity))
 
-        ids = [i.__odata__.id for i in value if is_persisted(i)]
+        ids = ['/' + i.__odata__.id for i in value if is_persisted(i)]
         if ids:
             data['{0}@odata.bind'.format(prop.name)] = ids
 
@@ -288,13 +287,13 @@ class EntityState(object):
             if value.persisted is False:
                 data[prop.name] = self._new_entity(value)
 
+            elif value.__odata__.id:
+                data['{0}@odata.bind'.format(prop.name)] = '/' + value.__odata__.id
+
             elif value.dirty:
                 data[prop.name] = self._updated_entity(value)
 
-            elif value.__odata__.id:
-                data['{0}@odata.bind'.format(prop.name)] = value.__odata__.id
-
         elif value.__odata__.id:
-            data['{0}@odata.bind'.format(prop.name)] = value.__odata__.id
+            data['{0}@odata.bind'.format(prop.name)] = '/' + value.__odata__.id
 
         return data
