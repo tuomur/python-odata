@@ -60,6 +60,7 @@ from .metadata import MetaData
 from .exceptions import ODataError
 from .context import Context
 from .action import Action, Function
+from requests.utils import requote_uri
 
 __all__ = (
     'ODataService',
@@ -76,9 +77,15 @@ class ODataService(object):
     :param auth: Custom Requests auth object to use for credentials
     :raises ODataConnectionError: Fetching metadata failed. Server returned an HTTP error code
     """
-    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None):
-        self.url = url
-        self.metadata_url = ''
+
+    def __init__(self, url:str, base=None, reflect_entities=False, session=None, auth=None, company_name=None):
+        if company_name:
+            self.url = "%s/Company('%s')/" % (url.rstrip('/'), requote_uri(company_name))
+            self.metadata_url = "%s/$metadata#Company('%s')/" % (url.rstrip('/'), requote_uri(company_name))
+        else:
+            self.url = "%s/" % (url.rstrip('/'))
+            self.metadata_url = "%s/$metadata/" % (url.rstrip('/'))
+
         self.collections = {}
         self.log = logging.getLogger('odata.service')
         self.default_context = Context(auth=auth, session=session)

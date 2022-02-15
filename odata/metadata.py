@@ -2,9 +2,11 @@
 
 import logging
 import sys
+
 has_lxml = False
 try:
     from lxml import etree as ET
+
     has_lxml = True
 except ImportError:
     if sys.version_info < (2, 7):
@@ -19,7 +21,6 @@ from .enumtype import EnumType, EnumTypeProperty
 
 
 class MetaData(object):
-
     log = logging.getLogger('odata.metadata')
     namespaces = {
         'edm': 'http://docs.oasis-open.org/odata/ns/edm',
@@ -41,7 +42,7 @@ class MetaData(object):
     _annotation_term_computed = 'Org.OData.Core.V1.Computed'
 
     def __init__(self, service):
-        self.url = service.url + '$metadata/'
+        self.url = service.metadata_url
         self.connection = service.default_context.connection
         self.service = service
 
