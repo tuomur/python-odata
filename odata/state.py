@@ -6,6 +6,7 @@ import inspect
 import logging
 import re
 from collections import OrderedDict
+
 try:
     # noinspection PyUnresolvedReferences
     from urllib.parse import urljoin, urlparse
@@ -97,7 +98,10 @@ class EntityState(object):
         for prop_name, prop in self.primary_key_properties:
             value = self.data.get(prop.name)
             if value is not None:
-                ids.append((prop, str(prop.escape_value(str(value)))))
+                if isinstance(value, str):
+                    ids.append((prop, str(prop.escape_value(value))))
+                else:
+                    ids.append((prop, value))
             else:
                 return
 
