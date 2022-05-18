@@ -97,7 +97,7 @@ class EntityState(object):
         for prop_name, prop in self.primary_key_properties:
             value = self.data.get(prop.name)
             if value is not None:
-                ids.append((prop, str(prop.escape_value(value))))
+                ids.append((prop, str(prop.escape_value(str(value)))))
             else:
                 return
 
