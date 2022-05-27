@@ -26,7 +26,7 @@ class ODataConnection(object):
     base_headers = {
         'Accept': 'application/json',
         'OData-Version': '4.0',
-        'User-Agent': 'python-odata {0}'.format(version),
+        'User-Agent': 'python-odata {0}'.format(__version__),
     }
     timeout = 90
 
@@ -96,9 +96,12 @@ class ODataConnection(object):
             err.detailed_message = detailed_message
             raise err
 
-    def execute_get(self, url, params=None):
+    def execute_get(self, url, params=None, extra_headers=None):
         headers = {}
         headers.update(self.base_headers)
+
+        if extra_headers:
+            headers.update(extra_headers)
 
         self.log.info(u'GET {0}'.format(url))
         if params:
@@ -116,11 +119,14 @@ class ODataConnection(object):
             msg = u'Unsupported response Content-Type: {0}'.format(response_ct)
             raise ODataError(msg)
 
-    def execute_post(self, url, data, params=None):
+    def execute_post(self, url, data, params=None, extra_headers=None):
         headers = {
             'Content-Type': 'application/json',
         }
         headers.update(self.base_headers)
+
+        if extra_headers:
+            headers.update(extra_headers)
 
         data = json.dumps(data)
 
@@ -136,11 +142,14 @@ class ODataConnection(object):
             return response.json()
         # no exceptions here, POSTing to Actions may not return data
 
-    def execute_patch(self, url, data):
+    def execute_patch(self, url, data, extra_headers=None):
         headers = {
             'Content-Type': 'application/json',
         }
         headers.update(self.base_headers)
+
+        if extra_headers:
+            headers.update(extra_headers)
 
         data = json.dumps(data)
 
@@ -150,9 +159,12 @@ class ODataConnection(object):
         response = self._do_patch(url, data=data, headers=headers)
         self._handle_odata_error(response)
 
-    def execute_delete(self, url):
+    def execute_delete(self, url, extra_headers=None):
         headers = {}
         headers.update(self.base_headers)
+
+        if extra_headers:
+            headers.update(extra_headers)
 
         self.log.info(u'DELETE {0}'.format(url))
 
