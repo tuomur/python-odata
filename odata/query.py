@@ -22,20 +22,20 @@ This makes object chaining possible:
 
 .. code-block:: python
 
-    >>> first_order = query.filter(...).filter(...).order_by(...).first()
+    >> first_order = query.filter(...).filter(...).order_by(...).first()
 
 The resulting objects can be fetched with :py:func:`~Query.first`,
 :py:func:`~Query.one`, :py:func:`~Query.all`, :py:func:`~Query.get` or
 just iterating the Query object itself. Network is not accessed until one of
 these ways is triggered.
 
-Navigation properties can be loaded in the same request with 
+Navigation properties can be loaded in the same request with
 :py:func:`~Query.expand`:
 
 .. code-block:: python
 
-    >>> query.expand(Order.Shipper, Order.Customer)
-    >>> order = query.first()
+    >> query.expand(Order.Shipper, Order.Customer)
+    >> order = query.first()
 
 ----
 
@@ -58,10 +58,11 @@ class Query(object):
     This class should not be instantiated directly, but from a
     :py:class:`~odata.service.ODataService` object.
     """
-    def __init__(self, entitycls, connection=None, options=None):
+    def __init__(self, entitycls, connection=None, options=None, base_url=None):
         self.entity = entitycls
         self.options = options or dict()
         self.connection = connection
+        self.base_url = base_url
 
     def __iter__(self):
         url = self._get_url()
@@ -74,11 +75,14 @@ class Query(object):
                     yield self._create_model(row)
 
                 if '@odata.nextLink' in data:
-                    url = urljoin(self.entity.__odata_url_base__, data['@odata.nextLink'])
+                    if isinstance(self.entity, str):
+                        url = urljoin(self.base_url, data['@odata.nextLink'])
+                    else:
+                        url = urljoin(self.entity.__odata_url_base__, data['@odata.nextLink'])
                     options = {}  # we get all options in the nextLink url
                 else:
                     break
-            elif self.entity.__odata_singleton__:
+            elif isinstance(self.entity, str) or self.entity.__odata_singleton__:
                 yield self._create_model(data)
                 break
             else:
@@ -91,6 +95,9 @@ class Query(object):
         return self.as_string()
 
     def _get_url(self):
+        if isinstance(self.entity, str):
+            return urljoin(self.base_url, self.entity)
+
         return self.entity.__odata_url__()
 
     def _get_options(self):
@@ -128,6 +135,8 @@ class Query(object):
     def _create_model(self, row):
         if len(self.options.get('$select', [])):
             return row
+        elif isinstance(self.entity, str):
+            return row
         else:
             e = self.entity.__new__(self.entity, from_data=row)
             es = e.__odata__
@@ -153,10 +162,10 @@ class Query(object):
         o['$top'] = self.options.get('$top', None)
         o['$skip'] = self.options.get('$skip', None)
         o['$select'] = self.options.get('$select', [])[:]
-        o['$filter'] = self.options.get('$filter', [])[:]
         o['$expand'] = self.options.get('$expand', [])[:]
+        o['$filter'] = self.options.get('$filter', [])[:]
         o['$orderby'] = self.options.get('$orderby', [])[:]
-        return Query(self.entity, options=o, connection=self.connection)
+        return Query(self.entity, options=o, connection=self.connection, base_url=self.base_url)
 
     def as_string(self):
         query = self._format_params(self._get_options())
@@ -199,7 +208,10 @@ class Query(object):
         q = self._new_query()
         option = q._get_or_create_option('$expand')
         for prop in values:
-            option.append(prop.name)
+            if isinstance(prop, str):
+                option.append(prop)
+            else:
+                option.append(prop.name)
         return q
 
     def order_by(self, *values):
@@ -301,6 +313,17 @@ class Query(object):
         :param composite_keys: Primary key values for Entities with composite keys
         :return: Entity instance or None
         """
+        if isinstance(self.entity, str):
+            url = f"{self._get_url()}({pk[0]})"
+            extra_headers = {
+                "Prefer": "odata.maxpagesize=0"  # Pagination turned off in raw mode
+            }
+            response_data = self.connection.execute_get(url, extra_headers=extra_headers)
+            if not response_data:
+                exc.NoResultsFound()
+
+            return (response_data or {}).get('value')
+
         i = self.entity.__new__(self.entity)
         es = i.__odata__
 
@@ -340,6 +363,9 @@ class Query(object):
         :type query_params: dict
         :return: Query result
         """
-        url = self.entity.__odata_url__()
-        response_data = self.connection.execute_get(url, params=query_params)
+        url = self._get_url()
+        extra_headers = {
+            "Prefer": "odata.maxpagesize=0"  # Pagination turned off in raw mode
+        }
+        response_data = self.connection.execute_get(url, params=query_params, extra_headers=extra_headers)
         return (response_data or {}).get('value')
