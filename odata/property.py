@@ -194,6 +194,19 @@ class PropertyBase(object):
         value = self.escape_value(value)
         return u'endswith({0}, {1})'.format(self.name, value)
 
+    def contains(self, value):
+        """Extend the StringProperty with contains method"""
+        value = self.escape_value(value)
+        return u'contains({0}, {1})'.format(self.name, value)
+
+    def not_contains(self, value):
+        """Does not contain"""
+        value = self.escape_value(value)
+        return u'not(contains({0}, {1}))'.format(self.name, value)
+
+    def trim(self):
+        return u'trim({0})'.format(self.name)
+
 
 class IntegerProperty(PropertyBase):
     """
