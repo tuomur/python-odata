@@ -11,17 +11,17 @@ to the Entity classes they are bound to.
 
 .. code-block:: python
 
-    >>> from odata import ODataService
-    >>> Service = ODataService(url, reflect_entities=True)
-    >>> Product = Service.entities['Product']
+    >> from odata import ODataService
+    >> Service = ODataService(url, reflect_entities=True)
+    >> Product = Service.entities['Product']
 
-    >>> prod = Service.query(Product).get(1234)
-    >>> prod.GetAvailabilityDate()
+    >> prod = Service.query(Product).get(1234)
+    >> prod.GetAvailabilityDate()
     datetime.datetime(2018, 6, 1, 12, 0, 0)
 
-    >>> import datetime
-    >>> GetExampleDecimal = Service.functions['GetExampleDecimal']
-    >>> GetExampleDecimal(Date=datetime.datetime.now())
+    >> import datetime
+    >> GetExampleDecimal = Service.functions['GetExampleDecimal']
+    >> GetExampleDecimal(Date=datetime.datetime.now())
     Decimal('34.0')
 
 
@@ -49,9 +49,9 @@ Usage:
 
 .. code-block:: python
 
-    >>> import datetime
-    >>> # calls GET http://service/GetExampleDecimal(Date=2017-01-01T12:00:00Z)
-    >>> GetExampleDecimal(Date=datetime.datetime.now())
+    >>import datetime
+    >># calls GET http://service/GetExampleDecimal(Date=2017-01-01T12:00:00Z)
+    >>GetExampleDecimal(Date=datetime.datetime.now())
     Decimal('34.0')
 
 
@@ -92,19 +92,19 @@ Usage:
 
 .. code-block:: python
 
-    >>> # collection bound Action. calls POST http://service/Product/ODataService.RemoveAllReservations
-    >>> Product.RemoveAllReservations()
+    >> # collection bound Action. calls POST http://service/Product/ODataService.RemoveAllReservations
+    >> Product.RemoveAllReservations()
     True
 
-    >>> # if the Action is instance bound, call the Action from the Product instance instead
-    >>> from decimal import Decimal
-    >>> prod = Service.query(Product).get(1234)
-    >>> # calls POST http://service/Product(1234)/ODataService.ReserveAmount
-    >>> prod.ReserveAmount(Amount=Decimal('5.0'))
+    >> # if the Action is instance bound, call the Action from the Product instance instead
+    >> from decimal import Decimal
+    >> prod = Service.query(Product).get(1234)
+    >> # calls POST http://service/Product(1234)/ODataService.ReserveAmount
+    >> prod.ReserveAmount(Amount=Decimal('5.0'))
     True
 
-    >>> # calls GET http://service/Product(1234)/ODataService.GetAvailabilityDate()
-    >>> prod.GetAvailabilityDate()
+    >> # calls GET http://service/Product(1234)/ODataService.GetAvailabilityDate()
+    >> prod.GetAvailabilityDate()
     datetime.datetime(2018, 6, 1, 12, 0, 0)
 
 
