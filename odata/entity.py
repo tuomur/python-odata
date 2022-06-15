@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Dict
 
 """
 Entity classes
@@ -92,36 +93,80 @@ class EntityBase(object):
     __odata_type__ = 'ODataSchema.Entity'
     __odata_singleton__ = False
     __odata_schema__ = None
+    __odata_scope__ = None
 
     @classmethod
     def __odata_url__(cls):
         # used by Query
         if cls.__odata_collection__:
-            return urljoin(cls.__odata_service__.url, cls.__odata_collection__)
+            if cls.__odata_scope__:
+                if callable(cls.__odata_scope__):
+                    return "/".join([
+                        urljoin(
+                            cls.__odata_service__.url,
+                            cls.__odata_scope__()
+                        ),
+                        cls.__odata_collection__
+
+                    ])
+                else:
+                    return "/".join([
+                        urljoin(
+                            cls.__odata_service__.url,
+                            cls.__odata_scope__
+                        ),
+                        cls.__odata_collection__
+
+                    ])
+            else:
+                return urljoin(cls.__odata_service__.url, cls.__odata_collection__)
 
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)
         i.__odata__ = es = EntityState(i)
+        if len(args) > 0:
+            data = args[0]
+        else:
+            data = {}
 
         if 'from_data' in kwargs:
             raw_data = kwargs.pop('from_data')
 
-            # check for values from $expand
-            for prop_name, prop in es.navigation_properties:
-                if prop.name in raw_data:
-                    expanded_data = raw_data.pop(prop.name)
-                    if prop.is_collection:
-                        es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(expanded_data))
-                    else:
-                        es.nav_cache[prop.name] = dict(single=prop.instances_from_data(expanded_data))
+            if raw_data:
+                for k, v in raw_data.items():
+                    if '@odata' in k:
+                        i.__odata__[k] = v
 
-            for prop_name, prop in es.properties:
-                i.__odata__[prop.name] = raw_data.get(prop.name)
+                # check for values from $expand
+                for prop_name, prop in es.navigation_properties:
+                    if prop.name in raw_data:
+                        expanded_data = raw_data.pop(prop.name)
+                        if prop.is_collection:
+                            es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(expanded_data))
+                        else:
+                            es.nav_cache[prop.name] = dict(single=prop.instances_from_data(expanded_data))
+
+                for prop_name, prop in es.properties:
+                    i.__odata__[prop.name] = raw_data.get(prop.name)
 
             i.__odata__.persisted = True
+            i.__odata__.persisted_id = i.__odata__.id
         else:
+            for prop_name, prop in es.navigation_properties:
+                if prop_name in data.keys():
+                    if prop.is_collection:
+                        es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(data[prop_name]))
+                    else:
+                        if isinstance(data[prop_name], Dict):
+                            es.nav_cache[prop.name] = dict(single=prop.instances_from_data(data[prop_name]))
+                        else:
+                            es.nav_cache[prop.name] = dict(single=data[prop_name])
+
             for prop_name, prop in es.properties:
-                i.__odata__[prop.name] = None
+                if prop_name in data.keys():
+                    i.__odata__[prop.name] = data[prop_name]
+                else:
+                    i.__odata__[prop.name] = None
 
         return i
 

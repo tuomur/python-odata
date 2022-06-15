@@ -9,6 +9,7 @@ import responses
 
 from odata import ODataService
 from odata.entity import EntityBase
+from odata.metadata import MetaData
 
 path = os.path.join(os.path.dirname(__file__), 'demo_metadata.xml')
 with open(path, mode='rb') as f:
@@ -18,6 +19,7 @@ with open(path, mode='rb') as f:
 class TestMetadataImport(TestCase):
 
     def test_read(self):
+        MetaData.flush_cache()
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, 'http://demo.local/odata/$metadata/',
                      body=metadata_xml, content_type='text/xml')
@@ -46,6 +48,7 @@ class TestMetadataImport(TestCase):
         self.assertIn('DemoUnboundAction', Service.actions)
 
     def test_computed_value_in_insert(self):
+        MetaData.flush_cache()
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, 'http://demo.local/odata/$metadata/',
                      body=metadata_xml, content_type='text/xml')

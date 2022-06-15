@@ -13,8 +13,8 @@ class Context:
         self.log = logging.getLogger('odata.context')
         self.connection = ODataConnection(session=session, auth=auth)
 
-    def query(self, entitycls):
-        q = Query(entitycls, connection=self.connection)
+    def query(self, entitycls, options=None):
+        q = Query(entitycls, connection=self.connection, options=options)
         return q
 
     def call(self, action_or_function, **parameters):
@@ -44,11 +44,29 @@ class Context:
         :type entity: EntityBase
         :raises ODataConnectionError: Delete not allowed or a serverside error. Server returned an HTTP error code
         """
-        self.log.info(u'Deleting entity: {0}'.format(entity))
+        self.log.debug(u'Deleting entity: {0}'.format(entity))
         url = entity.__odata__.instance_url
         self.connection.execute_delete(url)
         entity.__odata__.persisted = False
-        self.log.info(u'Success')
+        entity.__odata__.persisted_id = None
+        self.log.debug(u'Success')
+
+    def get(self, entity):
+        """
+        Creates a GET call to the service, fetching the entity
+
+        :type entity: EntityBase
+        """
+        self.log.debug(u'Fetching entity: {0}'.format(entity))
+        url = entity.__odata__.instance_url
+        data = self.connection.execute_get(url)
+        entity.__odata__.reset()
+        if data is not None:
+            entity.__odata__.update(data)
+            entity.__odata__.persisted = True
+            entity.__odata__.persisted_id = entity.__odata__.id
+        self.log.debug(u'Success')
+        return entity
 
     def save(self, entity, force_refresh=True):
         """
@@ -76,12 +94,16 @@ class Context:
 
         :type entity: EntityBase
         """
-        url = entity.__odata_url__()
+        
+        if entity.__odata__.odata_scope:
+            url = entity.__odata__.odata_scope
+        else:
+            url = entity.__odata_url__()
         if url is None:
             msg = 'Cannot insert Entity that does not belong to EntitySet: {0}'.format(entity)
             raise ODataError(msg)
 
-        self.log.info(u'Saving new entity')
+        self.log.debug(u'Saving new entity')
 
         es = entity.__odata__
         insert_data = es.data_for_insert()
@@ -92,8 +114,9 @@ class Context:
 
         if saved_data is not None:
             es.update(saved_data)
+            es.persisted_id = es.id
 
-        self.log.info(u'Success')
+        self.log.debug(u'Success')
 
     def _update_existing(self, entity, force_refresh=True):
         """
@@ -112,7 +135,7 @@ class Context:
             self.log.debug(u'Nothing to update: {0}'.format(entity))
             return
 
-        self.log.info(u'Updating existing entity: {0}'.format(entity))
+        self.log.debug(u'Updating existing entity: {0}'.format(entity))
 
         url = es.instance_url
 
@@ -120,10 +143,10 @@ class Context:
         es.reset()
 
         if saved_data is None and force_refresh:
-            self.log.info(u'Reloading entity from service')
+            self.log.debug(u'Reloading entity from service')
             saved_data = self.connection.execute_get(url)
 
         if saved_data is not None:
             entity.__odata__.update(saved_data)
 
-        self.log.info(u'Success')
+        self.log.debug(u'Success')

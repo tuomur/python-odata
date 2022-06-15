@@ -47,6 +47,7 @@ class NavigationProperty(object):
         self.name = name
         self.entitycls = entitycls
         self.is_collection = collection
+        self.is_computed_value = False
         if isinstance(foreign_key, PropertyBase):
             self.foreign_key = foreign_key.name
         else:
@@ -110,6 +111,7 @@ class NavigationProperty(object):
                     cache['collection'] = self.instances_from_data(raw_data['value'])
                 else:
                     cache['collection'] = []
+            [c.__odata__.set_scope(url) for c in cache['collection'] if c]
             return cache['collection']
         else:
             if 'single' not in cache:
@@ -118,4 +120,6 @@ class NavigationProperty(object):
                     cache['single'] = self.instances_from_data(raw_data)
                 else:
                     cache['single'] = None
+            if cache['single']:
+                cache['single'].__odata__.set_scope(url)
             return cache['single']

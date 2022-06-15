@@ -61,6 +61,7 @@ class Query(object):
     def __init__(self, entitycls, connection=None, options=None):
         self.entity = entitycls
         self.options = options or dict()
+        self.default_opts = options
         self.connection = connection
 
     def __iter__(self):
@@ -98,7 +99,7 @@ class Query(object):
         Format current query options to a dict that can be passed to requests
         :return: Dictionary
         """
-        options = dict()
+        options = self.options
 
         _top = self.options.get('$top')
         if _top is not None:
@@ -149,7 +150,7 @@ class Query(object):
 
         :return: Query instance
         """
-        o = dict()
+        o = self.default_opts or dict()
         o['$top'] = self.options.get('$top', None)
         o['$skip'] = self.options.get('$skip', None)
         o['$select'] = self.options.get('$select', [])[:]

@@ -158,6 +158,10 @@ class ODataService(object):
         """
         return Context(auth=auth, session=session)
 
+    @classmethod
+    def flush_cache(cls):
+        MetaData.flush_cache()
+
     def describe(self, entity):
         """
         Print a debug screen of an entity instance
@@ -170,14 +174,22 @@ class ODataService(object):
         """Returns boolean indicating entity's status"""
         return self.default_context.is_entity_saved(entity)
 
-    def query(self, entitycls):
+    def query(self, entitycls, options=None):
         """
         Start a new query for given entity class
 
         :param entitycls: Entity to query
         :return: Query object
         """
-        return self.default_context.query(entitycls)
+        return self.default_context.query(entitycls, options=options)
+
+    def get(self, entity):
+        """
+        Creates a GET call to the service, fetching the entity
+
+        :type entity: EntityBase
+        """
+        return self.default_context.get(entity)
 
     def delete(self, entity):
         """
