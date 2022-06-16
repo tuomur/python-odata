@@ -281,7 +281,7 @@ class MetaData(object):
         for i, parameter_element in enumerate(xmlq(action_element, 'edm:Parameter')):
             parameter_name = parameter_element.attrib['Name']
 
-            if i == 0:
+            if i == 0 and action['is_bound']:
                 action['is_bound_to'] = parameter_element.attrib['Type']
                 continue
 
