@@ -22,7 +22,7 @@ class EnumTypeProperty(PropertyBase):
         self.enum_class = enum_class
 
     def serialize(self, value):
-        return value.name
+        return value.name if hasattr(value, "name") else value
 
     def deserialize(self, value):
         return self.enum_class[value]
