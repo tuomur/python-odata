@@ -28,6 +28,7 @@ properties:
     order.Shipper = my_shipper
     Service.save(order)
 """
+import copy
 
 try:
     # noinspection PyUnresolvedReferences
@@ -81,6 +82,17 @@ class NavigationProperty(object):
         else:
             cache['single'] = value
         instance.__odata__.set_property_dirty(self)
+
+    def __getattr__(self, item):
+        if item.startswith("__"):
+            raise AttributeError(f"Skipping recursive check for {item}")
+        if self.entitycls:
+            # we're doing a recursive query here
+            cpy = copy.copy(getattr(self.entitycls, item))
+            cpy.name = f"{self.name}/{item}"
+            return cpy
+        else:
+            raise Exception(f"Couldn't find {item} in {self.name}")
 
     def __get__(self, instance, owner):
         """
