@@ -21,7 +21,7 @@ class TestMetadataImport(TestCase):
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, 'http://demo.local/odata/$metadata/',
                      body=metadata_xml, content_type='text/xml')
-            Service = ODataService('http://demo.local/odata/', reflect_entities=True)
+            Service = ODataService('http://demo.local/odata/', reflect_entities=True, quiet_progress=True)
 
         self.assertIn('Products', Service.entities)
 
@@ -49,7 +49,7 @@ class TestMetadataImport(TestCase):
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, 'http://demo.local/odata/$metadata/',
                      body=metadata_xml, content_type='text/xml')
-            Service = ODataService('http://demo.local/odata/', reflect_entities=True)
+            Service = ODataService('http://demo.local/odata/', reflect_entities=True, quiet_progress=True)
 
         Product = Service.entities['Products']
         test_product = Product()

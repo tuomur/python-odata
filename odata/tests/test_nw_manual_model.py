@@ -9,7 +9,7 @@ from odata.property import StringProperty, IntegerProperty
 
 Base = declarative_base()
 
-NorthwindService = ODataService('http://services.odata.org/V4/Northwind/Northwind.svc/', Base)
+NorthwindService = ODataService('http://services.odata.org/V4/Northwind/Northwind.svc/', Base, quiet_progress=True)
 service = NorthwindService
 
 

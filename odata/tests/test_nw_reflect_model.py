@@ -6,7 +6,7 @@ from odata.service import ODataService
 
 
 url = 'http://services.odata.org/V4/Northwind/Northwind.svc/'
-Service = ODataService(url, reflect_entities=True)
+Service = ODataService(url, reflect_entities=True, quiet_progress=True)
 Customer = Service.entities.get('Customers')
 Product = Service.entities.get('Products')
 

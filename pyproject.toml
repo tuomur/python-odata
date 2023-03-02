@@ -1,18 +1,21 @@
 [tool.poetry]
-name = "odata"
-version = "0.3"
+name = "python-odata"
+version = "0.4"
 description = "A simple library for read/write access to OData services."
 license="MIT"
 authors = ["Tuomas Mursu <tuomas.mursu@kapsi.fi>, Cristian Libotean <eblis102@gmail.com>"]
 readme = "README.md"
-packages = [{include = "python_odata"}]
+packages = [{include = "odata"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-requests = "^2.28.2"
-python-dateutil = "^2.8.2"
-rich = "^13.3.1"
+python = "^3.7"
+requests = ">=2.28.2"
+python-dateutil = ">=2.8.2"
+rich = ">=13.3.1"
 
+
+[tool.poetry.group.dev.dependencies]
+responses = ">=0.22.0"
 
 [build-system]
 requires = ["poetry-core"]

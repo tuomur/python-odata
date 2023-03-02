@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odata import ODataService
-from odata.property import StringProperty, IntegerProperty, DecimalProperty, \
-    NavigationProperty, DatetimeProperty
+from odata.property import StringProperty, IntegerProperty, DecimalProperty, NavigationProperty, DatetimeProperty
 from odata.enumtype import EnumType, EnumTypeProperty
 
 url = 'http://unittest.server.local/odata/'

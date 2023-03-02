@@ -76,12 +76,13 @@ class ODataService(object):
     :param auth: Custom Requests auth object to use for credentials
     :raises ODataConnectionError: Fetching metadata failed. Server returned an HTTP error code
     """
-    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None):
+    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None, quiet_progress=False):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
         self.log = logging.getLogger('odata.service')
         self.default_context = Context(auth=auth, session=session)
+        self.quiet_progress = quiet_progress
 
         self.Base = base or declarative_base()
         """
@@ -122,7 +123,7 @@ class ODataService(object):
         :type types: dict
         """
 
-        self.metadata = MetaData(self)
+        self.metadata = MetaData(self, quiet=self.quiet_progress)
         self.Entity = self.Base  # alias
 
         self.Action = type('Action', (Action,), dict(__odata_service__=self))
