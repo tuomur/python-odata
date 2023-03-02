@@ -6,6 +6,7 @@ from setuptools import setup, find_packages
 requires = [
     'requests>=2.0',
     'python-dateutil',
+    'rich>=13.3.1',
 ]
 
 # support for enums from pypi when on older python
