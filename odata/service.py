@@ -83,7 +83,14 @@ class ODataService(object):
         self.log = logging.getLogger('odata.service')
         self.default_context = Context(auth=auth, session=session)
 
-        self.entities = {}
+        self.Base = base or declarative_base()
+        """
+        Entity base class. Either a custom one given in init or a generated one. Can be used to define entities
+
+        :type Base: EntityBase
+        """
+
+        self.entities: dict[base or declarative_base()] = {}
         """
         A dictionary containing all the automatically created Entity classes.
         Empty if the service is created with ``reflect_entities=False``
@@ -116,12 +123,6 @@ class ODataService(object):
         """
 
         self.metadata = MetaData(self)
-        self.Base = base or declarative_base()
-        """
-        Entity base class. Either a custom one given in init or a generated one. Can be used to define entities
-
-        :type Base: EntityBase
-        """
         self.Entity = self.Base  # alias
 
         self.Action = type('Action', (Action,), dict(__odata_service__=self))
@@ -165,6 +166,9 @@ class ODataService(object):
         :param entity: Entity instance to describe
         """
         entity.__odata__.describe()
+
+    def values(self, entity):
+        entity.__odata__.values()
 
     def is_entity_saved(self, entity):
         """Returns boolean indicating entity's status"""

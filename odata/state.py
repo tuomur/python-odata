@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import os
+
 import inspect
+import itertools
 from collections import OrderedDict
+
+import rich
+import rich.table
+import rich.panel
 
 from odata.property import PropertyBase, NavigationProperty
 
@@ -40,33 +45,79 @@ class EntityState(object):
     def __repr__(self):
         return self.data.__repr__()
 
-    def describe(self):
-        rows = [
-            u'EntitySet: {0}'.format(self.entity.__odata_collection__),
-            u'Type: {0}'.format(self.entity.__odata_type__),
-            u'URL: {0}'.format(self.instance_url or self.entity.__odata_url__()),
-            u'',
-            u'Properties',
-            u'-' * 40,
-        ]
+    def values(self):
+        title = f"{self.entity.__odata_type__}"
+        table = rich.table.Table(
+            rich.table.Column("Properties", header_style="bold"),
+            rich.table.Column("Values", header_style="bold"),
+            row_styles=["dim", "none"],
+            min_width=len(title),
+            title=title)
 
-        for _, prop in self.properties:
+        show_properties = []
+        values = []
+        for key, prop in self.properties:
             name = prop.name
+            if prop.is_collection:
+                name += "[]"
             if prop.primary_key:
                 name += '*'
             if prop.name in self.dirty:
                 name += ' (dirty)'
-            rows.append(name)
+            show_properties.append(name)
+            values.append(str(self.data[key]))
+        for items in itertools.zip_longest(show_properties, values, fillvalue=""):
+            table.add_row(*items)
 
-        rows.append(u'')
-        rows.append(u'Navigation Properties')
-        rows.append(u'-' * 40)
+        rich.print(table)
 
+    def describe(self):
+        table = rich.table.Table(
+            rich.table.Column("Properties", header_style="bold"),
+            # rich.table.Column(header="Property type", header_style="bold blue", style="dim blue"),
+            rich.table.Column("Navigation properties", header_style="bold"),
+            # rich.table.Column(header="Navigation property type", header_style="bold blue", style="dim blue"),
+            row_styles=["dim", "none"],
+            title='EntitySet: [red]{0}[/red]'.format(self.entity.__odata_collection__))
+
+        panel = rich.panel.Panel(table,
+            title=f"[green]{self.entity.__odata_type__}",
+            subtitle=f"URL={self.instance_url or self.entity.__odata_url__()}", expand=False)
+
+        show_properties = []
+        # show_types = []
+        for _, prop in self.properties:
+            name = prop.name
+            if prop.is_collection:
+                name += "[]"
+            if prop.primary_key:
+                name += '*'
+            if prop.name in self.dirty:
+                name += ' (dirty)'
+
+            show_properties.append(
+                rich.console.Text.assemble(rich.console.Text(name), ": ", rich.console.Text(type(prop).__name__, style="dim blue", overflow="ellipsis"))
+            )
+            # show_types.append(type(prop).__name__)
+
+        show_nav_properties = []
+        # show_nav_types = []
         for _, prop in self.navigation_properties:
-            rows.append(prop.name)
+            name = prop.name
+            if prop.is_collection:
+                name += "[]"
+            show_nav_properties.append(
+                rich.console.Text.assemble(name, ": ", rich.console.Text(prop.entitycls.__name__, style="dim blue"), overflow="ellipsis"))
 
-        rows = os.linesep.join(rows)
-        print(rows)
+            # show_nav_types.append(prop.entitycls.__name__)
+
+        for items in itertools.zip_longest(show_properties, show_nav_properties, fillvalue=""):
+        # for items in itertools.zip_longest(show_properties, show_types, show_nav_properties, show_nav_types, fillvalue=""):
+            table.add_row(*items)
+
+        rich.print(panel)
+        return table
+
 
     def reset(self):
         self.dirty = []
