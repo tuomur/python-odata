@@ -2,6 +2,10 @@
 
 import logging
 import sys
+
+import rich
+import rich.progress
+
 has_lxml = False
 try:
     from lxml import etree as ET
@@ -60,10 +64,11 @@ class MetaData(object):
 
     def _set_object_relationships(self, all_types):
         entities = self._get_entities_from_types(all_types)
-        for entity in entities:  # type: EntityBase
+        for entity in rich.progress.track(entities, "Entity relationships", transient=True, show_speed=True, update_period=1):  # type: EntityBase
             schema = entity.__odata_schema__
 
-            for schema_nav in schema.get('navigation_properties', []):
+            all_schema_navs = schema.get('navigation_properties', [])
+            for schema_nav in all_schema_navs:
                 name = schema_nav['name']
                 type_ = schema_nav['type']
                 foreign_key = schema_nav['foreign_key']
@@ -84,70 +89,77 @@ class MetaData(object):
 
     def _create_entities(self, all_types, entity_base_class, schemas, depth=1):
         orphan_entities = []
-        for schema in schemas:
-            for entity_dict in schema.get('entities'):
-                entity_type = entity_dict['type']
-                entity_type_alias = entity_dict.get('type_alias')
-                entity_name = entity_dict['name']
+        with rich.progress.Progress(transient=True) as progress:
+            schema_task = progress.add_task("Schemas", total=len(schemas))
+            for schema in schemas:
+                entity_task = progress.add_task(f"Creating entities for {schema['name']}", total=len(schema.get("entities")))
+                for entity_dict in schema.get('entities'):
+                    progress.update(entity_task, advance=1)
+                    entity_type = entity_dict['type']
+                    entity_type_alias = entity_dict.get('type_alias')
+                    entity_name = entity_dict['name']
 
-                if entity_type in all_types:
-                    continue
-
-                parent_entity_class = None
-
-                if entity_dict.get('base_type'):
-                    base_type = entity_dict.get('base_type')
-                    parent_entity_class = all_types.get(base_type)
-
-                    if parent_entity_class is None:
-                        # base class not yet created
-                        orphan_entities.append(entity_type)
+                    if entity_type in all_types:
                         continue
 
-                super_class = parent_entity_class or entity_base_class
-                object_dict = dict(
-                    __odata_schema__=entity_dict,
-                    __odata_type__=entity_type,
-                )
-                entity_class = type(entity_name, (super_class,), object_dict)
+                    parent_entity_class = None
 
-                all_types[entity_type] = entity_class
-                if entity_type_alias:
-                    all_types[entity_type_alias] = entity_class
+                    if entity_dict.get('base_type'):
+                        base_type = entity_dict.get('base_type')
+                        parent_entity_class = all_types.get(base_type)
 
-                for prop in entity_dict.get('properties'):
-                    prop_name = prop['name']
+                        if parent_entity_class is None:
+                            # base class not yet created
+                            orphan_entities.append(entity_type)
+                            continue
 
-                    if hasattr(entity_class, prop_name):
-                        # do not replace existing properties (from Base)
-                        continue
+                    super_class = parent_entity_class or entity_base_class
+                    object_dict = dict(
+                        __odata_schema__=entity_dict,
+                        __odata_type__=entity_type,
+                    )
+                    entity_class = type(entity_name, (super_class,), object_dict)
 
-                    property_type = all_types.get(prop['type'])
+                    all_types[entity_type] = entity_class
+                    if entity_type_alias:
+                        all_types[entity_type_alias] = entity_class
 
-                    if property_type and issubclass(property_type, EnumType):
-                        property_instance = EnumTypeProperty(prop_name, enum_class=property_type)
-                        property_instance.is_computed_value = prop['is_computed_value']
-                    else:
-                        type_ = self.property_type_to_python(prop['type'])
-                        type_options = {
-                            'primary_key': prop['is_primary_key'],
-                            'is_collection': prop['is_collection'],
-                            'is_computed_value': prop['is_computed_value'],
-                        }
-                        property_instance = type_(prop_name, **type_options)
-                    setattr(entity_class, prop_name, property_instance)
+                    for prop in entity_dict.get('properties'):
+                        prop_name = prop['name']
 
-        if len(orphan_entities) > 0:
-            if depth > 10:
-                errmsg = ('Types could not be resolved. '
-                          'Orphaned types: {0}').format(', '.join(orphan_entities))
-                raise ODataReflectionError(errmsg)
-            depth += 1
-            self._create_entities(all_types, entity_base_class, schemas, depth)
+                        if hasattr(entity_class, prop_name):
+                            # do not replace existing properties (from Base)
+                            continue
+
+                        property_type = all_types.get(prop['type'])
+
+                        if property_type and issubclass(property_type, EnumType):
+                            property_instance = EnumTypeProperty(prop_name, enum_class=property_type)
+                            property_instance.is_computed_value = prop['is_computed_value']
+                        else:
+                            type_ = self.property_type_to_python(prop['type'])
+                            type_options = {
+                                'primary_key': prop['is_primary_key'],
+                                'is_collection': prop['is_collection'],
+                                'is_computed_value': prop['is_computed_value'],
+                            }
+                            property_instance = type_(prop_name, **type_options)
+                        setattr(entity_class, prop_name, property_instance)
+
+                progress.remove_task(entity_task)
+                progress.update(schema_task, advance=1)
+
+            if len(orphan_entities) > 0:
+                if depth > 10:
+                    errmsg = ('Types could not be resolved. '
+                              'Orphaned types: {0}').format(', '.join(orphan_entities))
+                    raise ODataReflectionError(errmsg)
+                depth += 1
+                self._create_entities(all_types, entity_base_class, schemas, depth)
 
     def _create_actions(self, all_types, actions, get_entity_or_prop_from_type):
         entities = self._get_entities_from_types(all_types)
-        for action in actions:
+        for action in rich.progress.track(actions, "Creating actions", transient=True):
             entity_type = action['is_bound_to']
             bind_entity = None
             bound_to_collection = False
@@ -179,7 +191,7 @@ class MetaData(object):
 
     def _create_functions(self, all_types, functions, get_entity_or_prop_from_type):
         entities = self._get_entities_from_types(all_types)
-        for function in functions:
+        for function in rich.progress.track(functions, "Creating functions", transient=True):
             entity_type = function['is_bound_to']
             bind_entity = None
             bound_to_collection = False
@@ -226,16 +238,24 @@ class MetaData(object):
 
             return self.property_type_to_python(typename)
 
-        for schema in schemas:
-            for enum_type in schema['enum_types']:
-                names = [(i['name'], i['value']) for i in enum_type['members']]
-                created_enum = EnumType(enum_type['name'], names=names)
-                all_types[enum_type['fully_qualified_name']] = created_enum
+        with rich.progress.Progress(transient=True) as progress:
+            schema_task = progress.add_task("Schemas", total=len(schemas))
+            for schema in schemas:
+                enum_task = progress.add_task(f"Enums for {schema['name']}", total=len(schema['enum_types']))
+                for enum_type in schema['enum_types']:
+                    progress.update(enum_task, advance=1)
+                    names = [(i['name'], i['value']) for i in enum_type['members']]
+                    created_enum = EnumType(enum_type['name'], names=names)
+                    all_types[enum_type['fully_qualified_name']] = created_enum
+
+                progress.remove_task(enum_task)
+                progress.update(schema_task, advance=1)
+
 
         self._create_entities(all_types, base_class, schemas)
 
         sets = {}
-        for entity_set in entity_sets.values():
+        for entity_set in rich.progress.track(entity_sets.values(), "Processing entity types ...", transient=True):
             entity_class = all_types.get(entity_set.get('type'))
             set_name = entity_set.get('name')
             is_singleton = entity_set.get('singleton', False)
@@ -251,8 +271,9 @@ class MetaData(object):
 
     def load_document(self):
         self.log.info('Loading metadata document: {0}'.format(self.url))
-        response = self.connection._do_get(self.url)
-        return ET.fromstring(response.content)
+        with rich.console.Console().status("Loading metadata"):
+            response = self.connection._do_get(self.url)
+            return ET.fromstring(response.content)
 
     def _parse_action(self, xmlq, action_element, schema_name):
         action = {
