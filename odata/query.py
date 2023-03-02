@@ -142,7 +142,7 @@ class Query(object):
     def _format_params(self, options):
         return '&'.join(['='.join((key, str(value))) for key, value in options.items() if value is not None])
 
-    def _new_query(self):
+    def _new_query(self) -> "Query":
         """
         Create copy of this query without mutable values. All query builders
         should use this first.
@@ -176,7 +176,7 @@ class Query(object):
             option.append(prop.name)
         return q
 
-    def filter(self, value):
+    def filter(self, value) -> "Query":
         """
         Set ``$filter`` query parameter. Can be called multiple times. Multiple
         :py:func:`filter` calls are concatenated with 'and'
@@ -189,7 +189,7 @@ class Query(object):
         option.append(value)
         return q
 
-    def expand(self, *values):
+    def expand(self, *values) -> "Query":
         """
         Set ``$expand`` query parameter
 
@@ -292,6 +292,16 @@ class Query(object):
         if len(data) > 1:
             raise exc.MultipleResultsFound()
         return data[0]
+
+    def count(self) -> int:
+        """
+        Return count of objects, matching current filter
+        Calls current URL + /$count&...params
+        """
+        url = self._get_url() + "/$count"
+        options = self._get_options()
+        data = self.connection.execute_get(url, options, allow_plain_response=True)
+        return int(data)
 
     def get(self, *pk, **composite_keys):
         """

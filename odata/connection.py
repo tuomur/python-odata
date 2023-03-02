@@ -96,7 +96,7 @@ class ODataConnection(object):
             err.detailed_message = detailed_message
             raise err
 
-    def execute_get(self, url, params=None):
+    def execute_get(self, url, params=None, allow_plain_response=False):
         headers = {}
         headers.update(self.base_headers)
 
@@ -112,6 +112,8 @@ class ODataConnection(object):
         if 'application/json' in response_ct:
             data = response.json()
             return data
+        elif "text/plain" in response_ct and allow_plain_response:
+            return response.text
         else:
             msg = u'Unsupported response Content-Type: {0}'.format(response_ct)
             raise ODataError(msg)
