@@ -30,21 +30,21 @@ HTTP Basic authentication:
 
 .. code-block:: python
 
-    >>> from requests.auth import HTTPBasicAuth
-    >>> my_auth = HTTPBasicAuth('username', 'password')
-    >>> Service = ODataService('url', auth=my_auth)
+    >> from requests.auth import HTTPBasicAuth
+    >> my_auth = HTTPBasicAuth('username', 'password')
+    >> Service = ODataService('url', auth=my_auth)
 
 
 NTLM Auth (for services like Microsoft Dynamics 2016):
 
 .. code-block:: python
 
-    >>> import requests
-    >>> from requests_ntlm import HttpNtlmAuth
-    >>> my_session = requests.Session()
-    >>> my_session.auth = HttpNtlmAuth('domain\\username', 'password')
-    >>> my_session.get('basic url')  # should return 200 OK
-    >>> Service = ODataService('url', session=my_session)
+    >> import requests
+    >> from requests_ntlm import HttpNtlmAuth
+    >> my_session = requests.Session()
+    >> my_session.auth = HttpNtlmAuth('domain\\username', 'password')
+    >> my_session.get('basic url')  # should return 200 OK
+    >> Service = ODataService('url', session=my_session)
 
 
 ----
@@ -76,12 +76,14 @@ class ODataService(object):
     :param auth: Custom Requests auth object to use for credentials
     :raises ODataConnectionError: Fetching metadata failed. Server returned an HTTP error code
     """
-    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None):
+    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None,
+                 schema_path = None):
         self.url = url
         self.metadata_url = ''
         self.collections = {}
         self.log = logging.getLogger('odata.service')
-        self.default_context = Context(auth=auth, session=session)
+        self.default_context = Context(auth=auth, session=session, base_url=url)
+        self.schema_path = schema_path
 
         self.entities = {}
         """
@@ -147,7 +149,7 @@ class ODataService(object):
     def __repr__(self):
         return u'<ODataService at {0}>'.format(self.url)
 
-    def create_context(self, auth=None, session=None):
+    def create_context(self, auth=None, session=None, base_url=None):
         """
         Create new context to use for session-like usage
 
@@ -156,7 +158,7 @@ class ODataService(object):
         :return: Context instance
         :rtype: Context
         """
-        return Context(auth=auth, session=session)
+        return Context(auth=auth, session=session, base_url=base_url)
 
     def describe(self, entity):
         """
@@ -188,7 +190,7 @@ class ODataService(object):
         """
         return self.default_context.delete(entity)
 
-    def save(self, entity, force_refresh=True):
+    def save(self, entity, force_refresh=True, extra_headers=None):
         """
         Creates a POST or PATCH call to the service. If the entity already has
         a primary key, an update is called. Otherwise the entity is inserted
@@ -196,6 +198,7 @@ class ODataService(object):
 
         :param entity: Model instance to insert or update
         :param force_refresh: Read full entity data again from service after PATCH call
+        :param extra_headers: Add custom headers on patch, post (Example:B1S-ReplaceCollectionsOnPatch=true)
         :raises ODataConnectionError: Invalid data or serverside error. Server returned an HTTP error code
         """
-        return self.default_context.save(entity, force_refresh=force_refresh)
+        return self.default_context.save(entity, force_refresh=force_refresh, extra_headers=extra_headers)

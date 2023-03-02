@@ -49,7 +49,7 @@ custom defined entities. Replacing the default types is not supported.
 Types
 -----
 """
-
+import copy
 from decimal import Decimal
 import datetime
 
@@ -98,7 +98,7 @@ class PropertyBase(object):
                 data = []
                 for i in raw_data:
                     data.append(self.deserialize(i))
-                return data
+                return copy.deepcopy(data)
             else:
                 return self.deserialize(raw_data)
         else:
@@ -193,6 +193,19 @@ class PropertyBase(object):
     def endswith(self, value):
         value = self.escape_value(value)
         return u'endswith({0}, {1})'.format(self.name, value)
+
+    def contains(self, value):
+        """Extend the StringProperty with contains method"""
+        value = self.escape_value(value)
+        return u'contains({0}, {1})'.format(self.name, value)
+
+    def not_contains(self, value):
+        """Does not contain"""
+        value = self.escape_value(value)
+        return u'not(contains({0}, {1}))'.format(self.name, value)
+
+    def trim(self):
+        return u'trim({0})'.format(self.name)
 
 
 class IntegerProperty(PropertyBase):

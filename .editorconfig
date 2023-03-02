@@ -1,0 +1,35 @@
+; indicate this is the root of the project
+root = true
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+max_line_length = 120
+tab_width = 4
+
+[*.py]
+max_line_length = 88
+
+[{*.hcl,*.nomad}]
+indent_size = 2
+
+[{*.tfvars,*.tf}]
+indent_size = 2
+
+[{*.yml,*.yaml}]
+indent_size = 2
+
+[{.babelrc,.eslintrc,jest.config,.stylelintrc,bowerrc,*.json,*.jsb3,*.jsb2}]
+indent_size = 2
+
+[Makefile]
+indent_size = 4
+indent_style = tab
+
+[Jenkinsfile]
+indent_size = 2
+
+[*.md]
+max_line_length = 80

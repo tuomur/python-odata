@@ -9,13 +9,13 @@ from odata.exceptions import ODataError
 
 class Context:
 
-    def __init__(self, session=None, auth=None):
+    def __init__(self, session=None, auth=None, base_url=None):
         self.log = logging.getLogger('odata.context')
         self.connection = ODataConnection(session=session, auth=auth)
+        self.base_url = base_url
 
     def query(self, entitycls):
-        q = Query(entitycls, connection=self.connection)
-        return q
+        return Query(entitycls, connection=self.connection, base_url=self.base_url)
 
     def call(self, action_or_function, **parameters):
         """
@@ -50,7 +50,7 @@ class Context:
         entity.__odata__.persisted = False
         self.log.info(u'Success')
 
-    def save(self, entity, force_refresh=True):
+    def save(self, entity, force_refresh=True, extra_headers=None):
         """
         Creates a POST or PATCH call to the service. If the entity already has
         a primary key, an update is called. Otherwise the entity is inserted
@@ -59,11 +59,12 @@ class Context:
         :param entity: Model instance to insert or update
         :type entity: EntityBase
         :param force_refresh: Read full entity data again from service after PATCH call
+        :param extra_headers: Add custom headers on patch, post (Example:B1S-ReplaceCollectionsOnPatch=true)
         :raises ODataConnectionError: Invalid data or serverside error. Server returned an HTTP error code
         """
 
         if self.is_entity_saved(entity):
-            self._update_existing(entity, force_refresh=force_refresh)
+            self._update_existing(entity, force_refresh=force_refresh, extra_headers=extra_headers)
         else:
             self._insert_new(entity)
 
@@ -95,7 +96,7 @@ class Context:
 
         self.log.info(u'Success')
 
-    def _update_existing(self, entity, force_refresh=True):
+    def _update_existing(self, entity, force_refresh=True, extra_headers=None):
         """
         Creates a PATCH call to the service, sending only the modified values
 
@@ -116,7 +117,7 @@ class Context:
 
         url = es.instance_url
 
-        saved_data = self.connection.execute_patch(url, patch_data)
+        saved_data = self.connection.execute_patch(url, patch_data, extra_headers)
         es.reset()
 
         if saved_data is None and force_refresh:

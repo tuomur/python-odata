@@ -9,10 +9,10 @@ as navigation properties and are supported in this library.
 
 .. code-block:: python
 
-    >>> order = Service.query(Order).first()
-    >>> order.Shipper
+    >> order = Service.query(Order).first()
+    >> order.Shipper
     <Entity(Shipper:3)>
-    >>> order.Shipper.CompanyName
+    >> order.Shipper.CompanyName
     'Federal Shipping'
 
 When creating new instances, relationships can be assigned via navigation

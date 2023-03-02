@@ -41,7 +41,7 @@ class MetaData(object):
     _annotation_term_computed = 'Org.OData.Core.V1.Computed'
 
     def __init__(self, service):
-        self.url = service.url + '$metadata/'
+        self.url = service.url + '$metadata'
         self.connection = service.default_context.connection
         self.service = service
 
@@ -249,10 +249,19 @@ class MetaData(object):
         self.log.info('Loaded {0} entity sets, total {1} types'.format(len(sets), len(all_types)))
         return base_class, sets, all_types
 
-    def load_document(self):
+    def load_document(self, raw_mode=False):
         self.log.info('Loading metadata document: {0}'.format(self.url))
-        response = self.connection._do_get(self.url)
-        return ET.fromstring(response.content)
+
+        if self.service.schema_path is None:
+            response = self.connection._do_get(self.url)
+            response = response.content
+        else:
+            with open(self.service.schema_path) as fp:
+                response = fp.read()
+
+        if raw_mode:
+            return response.decode("utf-8")
+        return ET.fromstring(response)
 
     def _parse_action(self, xmlq, action_element, schema_name):
         action = {
@@ -269,9 +278,10 @@ class MetaData(object):
             # bound actions are named SchemaNamespace.ActionName
             action['fully_qualified_name'] = '.'.join([schema_name, action['name']])
 
-        for parameter_element in xmlq(action_element, 'edm:Parameter'):
+        for i, parameter_element in enumerate(xmlq(action_element, 'edm:Parameter')):
             parameter_name = parameter_element.attrib['Name']
-            if action['is_bound'] and parameter_name == 'bindingParameter':
+
+            if i == 0 and action['is_bound']:
                 action['is_bound_to'] = parameter_element.attrib['Type']
                 continue
 
