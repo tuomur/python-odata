@@ -17,7 +17,7 @@ except ImportError:
 
 from .entity import declarative_base, EntityBase
 from .exceptions import ODataReflectionError
-from .property import StringProperty, IntegerProperty, DecimalProperty, DatetimeProperty, BooleanProperty,  UUIDProperty
+from .property import StringProperty, IntegerProperty, DecimalProperty, DatetimeProperty, BooleanProperty, NavigationProperty, UUIDProperty
 from .enumtype import EnumType, EnumTypeProperty
 
 

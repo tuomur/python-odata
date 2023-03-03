@@ -29,7 +29,7 @@ The resulting objects can be fetched with :py:func:`~Query.first`,
 just iterating the Query object itself. Network is not accessed until one of
 these ways is triggered.
 
-Navigation properties can be loaded in the same request with 
+Navigation properties (one level deep) can be loaded in the same request with
 :py:func:`~Query.expand`:
 
 .. code-block:: python
@@ -37,11 +37,20 @@ Navigation properties can be loaded in the same request with
     >>> query.expand(Order.Shipper, Order.Customer)
     >>> order = query.first()
 
+To get navigation properties multiple layers deep can be done by just referencing that member.
+
+.. code-block:: python
+
+    >>> query.filter((OrderDetails.Order.Employee.HomePhone.contains("555"))
+    >>> details = query.first()
+
+
 ----
 
 API
 ---
 """
+from odata.property import CompoundQueryFilter
 
 try:
     # noinspection PyUnresolvedReferences
@@ -114,7 +123,7 @@ class Query(object):
 
         _filters = self.options.get('$filter')
         if _filters:
-            options['$filter'] = ' and '.join(_filters)
+            options['$filter'] = ' and '.join([str(x) for x in _filters])
 
         _expand = self.options.get('$expand')
         if _expand:
@@ -122,16 +131,14 @@ class Query(object):
 
         _order_by = self.options.get('$orderby')
         if _order_by:
-            options['$orderby'] = ','.join(_order_by)
+            options['$orderby'] = ','.join([str(x) for x in _order_by])
         return options
 
     def _create_model(self, row):
         if len(self.options.get('$select', [])):
             return row
         else:
-            e = self.entity.__new__(self.entity, from_data=row)
-            es = e.__odata__
-            es.connection = self.connection
+            e = self.entity.__new__(self.entity, from_data=row, connection=self.connection)
             return e
 
     def _get_or_create_option(self, name):
@@ -238,11 +245,11 @@ class Query(object):
 
     @staticmethod
     def and_(value1, value2):
-        return '{0} and {1}'.format(value1, value2)
+        return CompoundQueryFilter(value1, "and", value2)
 
     @staticmethod
     def or_(value1, value2):
-        return '{0} or {1}'.format(value1, value2)
+        return CompoundQueryFilter(value1, "or", value2)
 
     @staticmethod
     def grouped(value):

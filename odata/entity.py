@@ -103,20 +103,24 @@ class EntityBase(object):
         i = super(EntityBase, cls).__new__(cls)
         i.__odata__ = es = EntityState(i)
 
+        if "connection" in kwargs:
+            es.connection = kwargs.pop("connection")
         if 'from_data' in kwargs:
             raw_data = kwargs.pop('from_data')
+
+            for prop_name, prop in es.properties:
+                i.__odata__[prop.name] = raw_data.get(prop.name)
 
             # check for values from $expand
             for prop_name, prop in es.navigation_properties:
                 if prop.name in raw_data:
                     expanded_data = raw_data.pop(prop.name)
-                    if prop.is_collection:
-                        es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(expanded_data))
-                    else:
-                        es.nav_cache[prop.name] = dict(single=prop.instances_from_data(expanded_data))
+                    base_url = es.instance_url
 
-            for prop_name, prop in es.properties:
-                i.__odata__[prop.name] = raw_data.get(prop.name)
+                    if prop.is_collection:
+                        es.nav_cache[prop.name] = dict(collection=prop.instances_from_data(expanded_data, es.connection, f"{base_url}/{prop.name}"))
+                    else:
+                        es.nav_cache[prop.name] = dict(single=prop.instances_from_data(expanded_data, es.connection, f"{base_url}/{prop.name}"))
 
             i.__odata__.persisted = True
         else:

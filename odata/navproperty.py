@@ -56,11 +56,18 @@ class NavigationProperty(object):
     def __repr__(self):
         return u'<NavigationProperty to {0}>'.format(self.entitycls)
 
-    def instances_from_data(self, raw_data):
+    def __populate_entity(self, data, connection, parent_navigation_url):
+        result = self.entitycls.__new__(self.entitycls, from_data=data, connection=connection)
+        es = result.__odata__
+        es.parent_navigation_url = parent_navigation_url
+
+        return result
+
+    def instances_from_data(self, raw_data, connection, parent_navigation_url):
         if self.is_collection:
-            return [self.entitycls.__new__(self.entitycls, from_data=d) for d in raw_data]
+            return [self.__populate_entity(d, connection, parent_navigation_url) for d in raw_data]
         else:
-            return self.entitycls.__new__(self.entitycls, from_data=raw_data)
+            return self.__populate_entity(raw_data, connection, parent_navigation_url)
 
     def _get_parent_cache(self, instance):
         es = instance.__odata__
@@ -94,6 +101,22 @@ class NavigationProperty(object):
         else:
             raise Exception(f"Couldn't find {item} in {self.name}")
 
+    def navigation_url(self, instance):
+        es = instance.__odata__
+        parent_url = es.instance_url
+
+        if not parent_url:
+            parent_url = es.parent_navigation_url
+
+        if parent_url:
+            url = parent_url
+            if not url.endswith("/"):
+                url += "/"
+            url = urljoin(url, self.name)
+            return url
+
+        return None
+
     def __get__(self, instance, owner):
         """
         :type instance: odata.entity.EntityBase
@@ -103,8 +126,8 @@ class NavigationProperty(object):
 
         es = instance.__odata__
         connection = es.connection
-        parent_url = es.instance_url
-        new_object = parent_url is None
+        nav_url = self.navigation_url(instance)
+        new_object = nav_url is None
         cache = self._get_parent_cache(instance)
 
         if new_object:
@@ -112,22 +135,20 @@ class NavigationProperty(object):
                 return cache.get('collection', [])
             return cache.get('single', None)
 
-        parent_url += '/'
-        url = urljoin(parent_url, self.name)
-
         if self.is_collection:
             if 'collection' not in cache:
-                raw_data = connection.execute_get(url)
+                raw_data = connection.execute_get(nav_url)
                 if raw_data:
-                    cache['collection'] = self.instances_from_data(raw_data['value'])
+                    cache['collection'] = self.instances_from_data(raw_data['value'], connection, nav_url)
                 else:
                     cache['collection'] = []
             return cache['collection']
         else:
             if 'single' not in cache:
-                raw_data = connection.execute_get(url)
+                raw_data = connection.execute_get(nav_url)
                 if raw_data:
-                    cache['single'] = self.instances_from_data(raw_data)
+                     value = self.instances_from_data(raw_data, connection, nav_url)
+                     cache['single'] = value
                 else:
                     cache['single'] = None
             return cache['single']

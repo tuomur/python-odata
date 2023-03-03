@@ -5,10 +5,11 @@ from __future__ import print_function
 import inspect
 import itertools
 from collections import OrderedDict
+from typing import Optional
 
 import rich
-import rich.table
 import rich.panel
+import rich.table
 
 from odata.property import PropertyBase, NavigationProperty
 
@@ -17,13 +18,14 @@ class EntityState(object):
 
     def __init__(self, entity):
         """:type entity: EntityBase """
-        self.entity = entity
+        self.entity: "EntityBase" = entity
         self.dirty = []
         self.nav_cache = {}
         self.data = {}
         self.connection = None
         # does this object exist serverside
         self.persisted = False
+        self.parent_navigation_url: Optional[str] = None  # for chaining objects, like OrderDetails.Order.Employee
 
     # dictionary access
     def __getitem__(self, item):
@@ -117,7 +119,6 @@ class EntityState(object):
 
         rich.print(panel)
         return table
-
 
     def reset(self):
         self.dirty = []

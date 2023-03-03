@@ -50,12 +50,70 @@ Types
 -----
 """
 
-from decimal import Decimal
 import datetime
+from decimal import Decimal
 
 import dateutil.parser
 
-from .navproperty import NavigationProperty
+from .navproperty import NavigationProperty  # actually used by other imports, don't remove
+from .exceptions import ODataQueryError
+
+
+class SortOrder(object):
+    def __init__(self, member, sort_order):
+        self.member = member
+        self.sort_order = sort_order
+
+    def __str__(self):
+        return f"{self.member} {self.sort_order}"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class BaseQueryFilter(object):
+    def __init__(self, member, op, value):
+        self.member = member
+        self.op = op
+        self.value = value
+
+    def __and__(self, other: "BaseQueryFilter"):
+        if isinstance(other, BaseQueryFilter):
+            return CompoundQueryFilter(self, "and", other)
+        else:
+            raise ODataQueryError("Can only use other PropertyBase classes for & (AND) operation")
+
+    def __or__(self, other: "BaseQueryFilter"):
+        if isinstance(other, BaseQueryFilter):
+            return CompoundQueryFilter(self, "or", other)
+        else:
+            raise ODataQueryError("Can only use other PropertyBase classes for | (OR) operation")
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class UnaryQueryFilter(BaseQueryFilter):
+    def __init__(self, op, value):
+        super().__init__(None, op, value)
+
+    def __str__(self):
+        return f"{self.op}({self.value})"
+
+
+class SimpleQueryFilter(BaseQueryFilter):
+    def __str__(self):
+        return f"{self.member} {self.op} {self.value}"
+
+
+class ParameterizedQueryFilter(BaseQueryFilter):
+    def __str__(self):
+        return f"{self.op}({self.member}, {self.value})"
+
+
+class CompoundQueryFilter(BaseQueryFilter):
+    def __str__(self):
+        return f"({self.member}) {self.op} ({self.value})"
 
 
 class PropertyBase(object):
@@ -157,52 +215,52 @@ class PropertyBase(object):
         return value
 
     def asc(self):
-        return '{0} asc'.format(self.name)
+        return SortOrder(self.name, "asc")
 
     def desc(self):
-        return '{0} desc'.format(self.name)
+        return SortOrder(self.name, "desc")
 
     def __eq__(self, other):
         value = self.escape_value(other)
-        return u'{0} eq {1}'.format(self.name, value)
+        return SimpleQueryFilter(self.name, "eq", value)
 
     def __ne__(self, other):
         value = self.escape_value(other)
-        return u'{0} ne {1}'.format(self.name, value)
+        return SimpleQueryFilter(self.name, "ne", value)
 
     def __ge__(self, other):
         value = self.escape_value(other)
-        return u'{0} ge {1}'.format(self.name, value)
+        return SimpleQueryFilter(self.name, "ge", value)
 
     def __gt__(self, other):
         value = self.escape_value(other)
-        return u'{0} gt {1}'.format(self.name, value)
+        return SimpleQueryFilter(self.name, "gt", value)
 
     def __le__(self, other):
         value = self.escape_value(other)
-        return u'{0} le {1}'.format(self.name, value)
+        return SimpleQueryFilter(self.name, "le", value)
 
     def __lt__(self, other):
         value = self.escape_value(other)
-        return u'{0} lt {1}'.format(self.name, value)
+        return SimpleQueryFilter(self.name, "lt", value)
 
     def startswith(self, value):
         value = self.escape_value(value)
-        return u'startswith({0}, {1})'.format(self.name, value)
+        return ParameterizedQueryFilter(self.name, "startswith", value)
 
     def endswith(self, value):
         value = self.escape_value(value)
-        return u'endswith({0}, {1})'.format(self.name, value)
+        return ParameterizedQueryFilter(self.name, "endswith", value)
 
     def contains(self, value):
         """Extend the StringProperty with contains method"""
         value = self.escape_value(value)
-        return u'contains({0}, {1})'.format(self.name, value)
+        return ParameterizedQueryFilter(self.name, "contains", value)
 
     def lacks(self, value):
         """Does not contain"""
         value = self.escape_value(value)
-        return u'not(contains({0}, {1}))'.format(self.name, value)
+        return UnaryQueryFilter("not", ParameterizedQueryFilter(self.name, "contains", value))
 
 
 class IntegerProperty(PropertyBase):
