@@ -16,21 +16,22 @@ in a manner that mimics some of the modern ORM libraries for easy usage.
 Features:
 
 - Supports OData version 4.0 with JSON format
-- Supports creating, reading, updating and deleting data
+- Supports counting, creating, reading, updating and deleting data
 - Supports simple queries on EntitySets
 - Powered by the excellent Requests library
-
+- Most of the more intricate querying options
 
 Not currently supported:
 
 - ATOM format
 - ComplexTypes
 - Streams
-- Most of the more intricate querying options
+- Typing hints for objects
+- Python naming convention for data classes
 
 Project source code and issue tracker: `GitHub`_
 
-.. _GitHub: https://github.com/tuomur/python-odata
+.. _GitHub: https://github.com/eblis/python-odata
 
 Code example
 ------------
@@ -59,6 +60,22 @@ Query some orders:
     for order in query:
         print(order.Name)
 
+More advanced example:
+
+.. code-block:: python
+
+    OrderDetails = service.entities["Order_Details"]
+
+    query = service.query(OrderDetails)
+    values = query \
+        .filter((OrderDetails.Order.Employee.HomePhone.contains("555")) | (OrderDetails.Order.Employee.City == "London")) \
+        .filter(OrderDetails.Order.Employee.FirstName.lacks("Steven")) \
+        .order_by(OrderDetails.Order.ShipCountry.asc()) \
+        .all()
+    for order_details in values:
+        service.values(order_details)
+        service.values(order_details.Order)
+        service.values(order_details.Order.Employee)
 
 Topics
 ------
