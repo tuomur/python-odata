@@ -14,6 +14,7 @@ Available on [readthedocs.org](http://tuomur-python-odata.readthedocs.org/en/lat
 
 - requests >= 2.0
 - python-dateutil
+- rich >= 13.3.1
 
 ## Demo
 
