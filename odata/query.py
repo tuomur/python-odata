@@ -67,6 +67,7 @@ class Query(object):
     This class should not be instantiated directly, but from a
     :py:class:`~odata.service.ODataService` object.
     """
+
     def __init__(self, entitycls, connection=None, options=None):
         self.entity = entitycls
         self.options = options or dict()
@@ -82,7 +83,7 @@ class Query(object):
                 for row in value:
                     yield self._create_model(row)
 
-                if '@odata.nextLink' in data:
+                if '@odata.nextLink' in data and '$top' not in options.keys():  # do not load next page on userpaging:
                     url = urljoin(self.entity.__odata_url_base__, data['@odata.nextLink'])
                     options = {}  # we get all options in the nextLink url
                 else:
