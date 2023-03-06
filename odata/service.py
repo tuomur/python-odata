@@ -84,7 +84,7 @@ class ODataService(object):
     """
     def __init__(self, url, base=None, reflect_entities=False, reflect_output_package: Optional[str] = None, session=None, auth=None, quiet_progress=False):
         self.url = url
-        self.metadata_url = urllib.parse.urljoin(url + "/", "$metadata/")
+        self.metadata_url = urllib.parse.urljoin(url + "/", "$metadata")
         self.collections = {}
         self.log = logging.getLogger('odata.service')
         self.default_context = Context(auth=auth, session=session)
