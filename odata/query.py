@@ -37,7 +37,7 @@ Navigation properties (one level deep) can be loaded in the same request with
     >>> query.expand(Order.Shipper, Order.Customer)
     >>> order = query.first()
 
-To get navigation properties multiple layers deep can be done by just referencing that member.
+Geting navigation properties multiple layers deep is performed by just referencing those inner members.
 
 .. code-block:: python
 

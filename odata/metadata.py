@@ -44,7 +44,7 @@ class MetaData(object):
     _annotation_term_computed = 'Org.OData.Core.V1.Computed'
 
     def __init__(self, service, quiet: bool = False):
-        self.url = service.url + '$metadata/'
+        self.url = service.metadata_url
         self.connection = service.default_context.connection
         self.service = service
         self.quiet = quiet
@@ -250,7 +250,6 @@ class MetaData(object):
 
                 progress.remove_task(enum_task)
                 progress.update(schema_task, advance=1)
-
 
         self._create_entities(all_types, base_class, schemas)
 

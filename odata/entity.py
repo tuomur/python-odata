@@ -75,6 +75,7 @@ use the Product class to create new objects or query existing ones:
     for product in query:
         print(product.name, product.is_product_available())
 """
+from odata.exceptions import ODataConnectionError
 
 try:
     # noinspection PyUnresolvedReferences
@@ -98,6 +99,9 @@ class EntityBase(object):
         # used by Query
         if cls.__odata_collection__:
             return urljoin(cls.__odata_service__.url, cls.__odata_collection__)
+        else:
+            raise ODataConnectionError(f"Cannot query {cls.__name__} objects as they don't have "
+                                       f"the collection defined. Are you sure you're querying the correct object ?")
 
     def __new__(cls, *args, **kwargs):
         i = super(EntityBase, cls).__new__(cls)

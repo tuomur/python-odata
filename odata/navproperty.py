@@ -29,6 +29,10 @@ properties:
     Service.save(order)
 """
 import copy
+import importlib
+from typing import Union
+
+from odata.exceptions import ODataReflectionError
 
 try:
     # noinspection PyUnresolvedReferences
@@ -43,10 +47,11 @@ class NavigationProperty(object):
     A Property-like object for marking relationships between entities, but does
     not inherit from PropertyBase.
     """
-    def __init__(self, name, entitycls, collection=False, foreign_key=None):
+    def __init__(self, name, entitycls: Union[type, str], entity_package: str = None, collection=False, foreign_key=None):
         from odata.property import PropertyBase
         self.name = name
-        self.entitycls = entitycls
+        self.class_package = entity_package
+        self.entityclass = entitycls
         self.is_collection = collection
         if isinstance(foreign_key, PropertyBase):
             self.foreign_key = foreign_key.name
@@ -62,6 +67,20 @@ class NavigationProperty(object):
         es.parent_navigation_url = parent_navigation_url
 
         return result
+
+    @property
+    def entitycls(self):
+        # if we've been given the type as a string
+        # we need to look for the actual type now, at runtime
+        if isinstance(self.entityclass, str):
+            if not self.class_package:
+                raise ODataReflectionError("Entitycls is a string, if you specify the entity class as a string you also need to specify "
+                                           "the class_package where that class can be imported from at runtime")
+
+            module = importlib.import_module(self.class_package)
+            self.entityclass = getattr(module, self.entityclass)
+
+        return self.entityclass
 
     def instances_from_data(self, raw_data, connection, parent_navigation_url):
         if self.is_collection:

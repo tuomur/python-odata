@@ -16,17 +16,18 @@ in a manner that mimics some of the modern ORM libraries for easy usage.
 Features:
 
 - Supports OData version 4.0 with JSON format
+- Supports automatic reflection of types from $metadata endpoint
 - Supports counting, creating, reading, updating and deleting data
 - Supports simple queries on EntitySets
 - Powered by the excellent Requests library
 - Most of the more intricate querying options
+- Automatically generate Python data classes base on service $metadata endpoint definitions
 
 Not currently supported:
 
 - ATOM format
 - ComplexTypes
 - Streams
-- Typing hints for objects
 - Python naming convention for data classes
 
 Project source code and issue tracker: `GitHub`_
@@ -88,6 +89,7 @@ Topics
    entity
    action
    property
+   reflection
    exceptions
 
 

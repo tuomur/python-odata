@@ -2,6 +2,8 @@
 
 import unittest
 
+import requests
+
 from odata.service import ODataService
 from odata.entity import declarative_base
 from odata.property import StringProperty, IntegerProperty
@@ -9,7 +11,15 @@ from odata.property import StringProperty, IntegerProperty
 
 Base = declarative_base()
 
-NorthwindService = ODataService('http://services.odata.org/V4/Northwind/Northwind.svc/', Base, quiet_progress=True)
+proxy = {'http': '', 'https': ''}
+
+session = requests.Session()
+
+session.trust_env = False
+session.verify = False
+session.proxies.update(proxy)
+
+NorthwindService = ODataService('http://services.odata.org/V4/Northwind/Northwind.svc/', Base, session=session, quiet_progress=True)
 service = NorthwindService
 
 
@@ -41,7 +51,7 @@ class Product(Base):
     quantity_per_unit = StringProperty('QuantityPerUnit')
 
 
-@unittest.skip('unavailable')
+# @unittest.skip('unavailable')
 class NorthwindManualModelReadTest(unittest.TestCase):
 
     def test_query_one(self):

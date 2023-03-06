@@ -54,6 +54,8 @@ API
 """
 
 import logging
+import urllib.parse
+from typing import Optional
 
 from .entity import EntityBase, declarative_base
 from .metadata import MetaData
@@ -66,19 +68,23 @@ __all__ = (
     'ODataError',
 )
 
+from .reflector import MetadataReflector
+
 
 class ODataService(object):
     """
     :param url: Endpoint address. Must be an address that can be appended with ``$metadata``
     :param base: Custom base class to use for entities
     :param reflect_entities: Create a request to the service for its metadata, and create entity classes automatically
+    :param reflect_output_path: Optional parameter, if reflect_entities is configured it will create all reflected classes at this path
     :param session: Custom Requests session to use for communication with the endpoint
     :param auth: Custom Requests auth object to use for credentials
+    :param quiet_progress: Don't show any progress information while reflecting metadata and while other long duration tasks are running. Default is to show progress
     :raises ODataConnectionError: Fetching metadata failed. Server returned an HTTP error code
     """
-    def __init__(self, url, base=None, reflect_entities=False, session=None, auth=None, quiet_progress=False):
+    def __init__(self, url, base=None, reflect_entities=False, reflect_output_package: Optional[str] = None, session=None, auth=None, quiet_progress=False):
         self.url = url
-        self.metadata_url = ''
+        self.metadata_url = urllib.parse.urljoin(url + "/", "$metadata/")
         self.collections = {}
         self.log = logging.getLogger('odata.service')
         self.default_context = Context(auth=auth, session=session)
@@ -142,12 +148,18 @@ class ODataService(object):
 
         if reflect_entities:
             _, self.entities, self.types = self.metadata.get_entity_sets(base=self.Entity)
+            if reflect_output_package:
+                self._write_reflected_types(metadata_url=self.metadata_url, package=reflect_output_package)
 
         self.Entity.__odata_url_base__ = url
         self.Entity.__odata_service__ = self
 
     def __repr__(self):
         return u'<ODataService at {0}>'.format(self.url)
+
+    def _write_reflected_types(self, metadata_url: str, package: str):
+        outputter = MetadataReflector(metadata_url=metadata_url, entities=self.entities, types=self.types, package=package)
+        outputter.write_reflected_types()
 
     def create_context(self, auth=None, session=None):
         """
