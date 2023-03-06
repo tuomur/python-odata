@@ -3,7 +3,7 @@ name = "python-odata"
 version = "0.4"
 description = "A simple library for read/write access to OData services."
 license="MIT"
-authors = ["Tuomas Mursu <tuomas.mursu@kapsi.fi>, Cristian Libotean <eblis102@gmail.com>"]
+authors = ["Tuomas Mursu <tuomas.mursu@kapsi.fi>", "Cristian Libotean <eblis102@gmail.com>"]
 readme = "README.md"
 packages = [{include = "odata"}]
 
