@@ -8,7 +8,7 @@ A simple library for read/write access to OData services.
 
 ## Documentation
 
-Available on [readthedocs.org](http://tuomur-python-odata.readthedocs.org/en/latest/)
+Available on [readthedocs.org](https://python-odata.readthedocs.io/en/latest/index.html)
 
 ## Dependencies
 
