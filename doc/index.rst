@@ -21,7 +21,7 @@ Features:
 - Supports simple queries on EntitySets
 - Powered by the excellent Requests library
 - Most of the more intricate querying options
-- Automatically generate Python data classes base on service $metadata endpoint definitions
+- Automatically generate Python data classes based on service $metadata endpoint definitions
 
 Not currently supported:
 
