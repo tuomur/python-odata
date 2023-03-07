@@ -76,6 +76,7 @@ making calls and queries a lot easier to implement.
 
 """
 
+import rich
 from io import StringIO
 from pathlib import Path
 
@@ -96,11 +97,12 @@ type_translations = {
 
 
 class MetadataReflector:
-    def __init__(self, metadata_url: str, entities: list["EntitySetCategories"], types: list["EntityBase"], package: str):
+    def __init__(self, metadata_url: str, entities: list["EntitySetCategories"], types: list["EntityBase"], package: str, quiet: bool = False):
         self.package = package
         self.metadata_url = metadata_url
         self.entities = entities
         self.types = types
+        self.quiet = quiet
 
     def write_reflected_types(self):
         template_folder = Path(__file__).parent / "reflect-templates"
@@ -114,7 +116,8 @@ class MetadataReflector:
                           type_translations=type_translations,
                           package=self.package,
                           metadata_url=self.metadata_url)
-        template.render_context(context)
+        with rich.console.Console(quiet=self.quiet).status("Loading metadata"):
+            template.render_context(context)
 
         output_path = Path(self.package.replace(".", "/")).with_suffix(".py")
         if not output_path.parent.exists():
