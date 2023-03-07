@@ -55,7 +55,7 @@ API
 
 import logging
 import urllib.parse
-from typing import Optional
+from typing import Optional, TypeVar
 
 from .entity import EntityBase, declarative_base
 from .metadata import MetaData
@@ -68,7 +68,11 @@ __all__ = (
     'ODataError',
 )
 
+from .query import Query
+
 from .reflector import MetadataReflector
+
+Q = TypeVar('Q')
 
 
 class ODataService(object):
@@ -158,7 +162,7 @@ class ODataService(object):
         return u'<ODataService at {0}>'.format(self.url)
 
     def _write_reflected_types(self, metadata_url: str, package: str):
-        outputter = MetadataReflector(metadata_url=metadata_url, entities=self.entities, types=self.types, package=package)
+        outputter = MetadataReflector(metadata_url=metadata_url, entities=self.entities, types=self.types, package=package, quiet=self.quiet_progress)
         outputter.write_reflected_types()
 
     def create_context(self, auth=None, session=None):
@@ -172,7 +176,7 @@ class ODataService(object):
         """
         return Context(auth=auth, session=session)
 
-    def describe(self, entity):
+    def describe(self, entity) -> None:
         """
         Print a debug screen of an entity instance
 
@@ -180,14 +184,14 @@ class ODataService(object):
         """
         entity.__odata__.describe()
 
-    def values(self, entity):
+    def values(self, entity) -> None:
         entity.__odata__.values()
 
     def is_entity_saved(self, entity):
         """Returns boolean indicating entity's status"""
         return self.default_context.is_entity_saved(entity)
 
-    def query(self, entitycls):
+    def query(self, entitycls: Q) -> Query[Q]:
         """
         Start a new query for given entity class
 

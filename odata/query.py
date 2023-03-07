@@ -50,6 +50,8 @@ Geting navigation properties multiple layers deep is performed by just referenci
 API
 ---
 """
+from typing import TypeVar, Generic
+
 from odata.property import CompoundQueryFilter
 
 try:
@@ -62,18 +64,21 @@ except ImportError:
 import odata.exceptions as exc
 
 
-class Query(object):
+Q = TypeVar('Q')
+
+
+class Query(Generic[Q]):
     """
     This class should not be instantiated directly, but from a
     :py:class:`~odata.service.ODataService` object.
     """
 
-    def __init__(self, entitycls, connection=None, options=None):
-        self.entity = entitycls
+    def __init__(self, entitycls: Q, connection=None, options=None):
+        self.entity: Q = entitycls
         self.options = options or dict()
         self.connection = connection
 
-    def __iter__(self):
+    def __iter__(self) -> Q:
         url = self._get_url()
         options = self._get_options()
         while True:
@@ -135,22 +140,22 @@ class Query(object):
             options['$orderby'] = ','.join([str(x) for x in _order_by])
         return options
 
-    def _create_model(self, row):
+    def _create_model(self, row) -> Q:
         if len(self.options.get('$select', [])):
             return row
         else:
             e = self.entity.__new__(self.entity, from_data=row, connection=self.connection)
             return e
 
-    def _get_or_create_option(self, name):
+    def _get_or_create_option(self, name) -> str:
         if name not in self.options:
             self.options[name] = []
         return self.options[name]
 
-    def _format_params(self, options):
+    def _format_params(self, options) -> str:
         return '&'.join(['='.join((key, str(value))) for key, value in options.items() if value is not None])
 
-    def _new_query(self) -> "Query":
+    def _new_query(self) -> "Query[Q]":
         """
         Create copy of this query without mutable values. All query builders
         should use this first.
@@ -164,15 +169,15 @@ class Query(object):
         o['$filter'] = self.options.get('$filter', [])[:]
         o['$expand'] = self.options.get('$expand', [])[:]
         o['$orderby'] = self.options.get('$orderby', [])[:]
-        return Query(self.entity, options=o, connection=self.connection)
+        return Query[Q](self.entity, options=o, connection=self.connection)
 
-    def as_string(self):
+    def as_string(self) -> str:
         query = self._format_params(self._get_options())
         return urljoin(self._get_url(), '?{0}'.format(query))
 
     # Query builders ###########################################################
 
-    def select(self, *values):
+    def select(self, *values) -> "Query[Q]":
         """
         Set properties to fetch instead of full Entity objects
 
@@ -184,7 +189,7 @@ class Query(object):
             option.append(prop.name)
         return q
 
-    def filter(self, value) -> "Query":
+    def filter(self, value) -> "Query[Q]":
         """
         Set ``$filter`` query parameter. Can be called multiple times. Multiple
         :py:func:`filter` calls are concatenated with 'and'
@@ -197,7 +202,7 @@ class Query(object):
         option.append(value)
         return q
 
-    def expand(self, *values) -> "Query":
+    def expand(self, *values) -> "Query[Q]":
         """
         Set ``$expand`` query parameter
 
@@ -210,7 +215,7 @@ class Query(object):
             option.append(prop.name)
         return q
 
-    def order_by(self, *values):
+    def order_by(self, *values) -> "Query[Q]":
         """
         Set ``$orderby`` query parameter
 
@@ -222,7 +227,7 @@ class Query(object):
         option.extend(values)
         return q
 
-    def limit(self, value):
+    def limit(self, value) -> "Query[Q]":
         """
         Set ``$top`` query parameter
 
@@ -233,7 +238,7 @@ class Query(object):
         q.options['$top'] = value
         return q
 
-    def offset(self, value):
+    def offset(self, value) -> "Query[Q]":
         """
         Set ``$skip`` query parameter
 
@@ -245,11 +250,11 @@ class Query(object):
         return q
 
     @staticmethod
-    def and_(value1, value2):
+    def and_(value1, value2) -> CompoundQueryFilter:
         return CompoundQueryFilter(value1, "and", value2)
 
     @staticmethod
-    def or_(value1, value2):
+    def or_(value1, value2) -> CompoundQueryFilter:
         return CompoundQueryFilter(value1, "or", value2)
 
     @staticmethod
@@ -258,7 +263,7 @@ class Query(object):
 
     # Actions ##################################################################
 
-    def all(self):
+    def all(self) -> list[Q]:
         """
         Returns a list of all Entity instances that match the current query
         options. Iterates through all results with multiple requests fired if
@@ -268,7 +273,7 @@ class Query(object):
         """
         return list(iter(self))
 
-    def first(self):
+    def first(self) -> Q:
         """
         Return the first Entity instance that matches current query
 
@@ -281,7 +286,7 @@ class Query(object):
         if data:
             return data[0]
 
-    def one(self):
+    def one(self) -> Q:
         """
         Return only one resulting Entity
 
@@ -311,7 +316,7 @@ class Query(object):
         data = self.connection.execute_get(url, options, allow_plain_response=True)
         return int(data)
 
-    def get(self, *pk, **composite_keys):
+    def get(self, *pk, **composite_keys) -> Q:
         """
         Return a Entity with the given primary key
 
@@ -342,7 +347,7 @@ class Query(object):
             return data[0]
         raise exc.NoResultsFound()
 
-    def raw(self, query_params):
+    def raw(self, query_params) -> dict:
         """
         Execute a query with custom parameters. Allows queries that
         :py:class:`Query` does not support otherwise. Results are not converted
