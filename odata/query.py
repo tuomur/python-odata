@@ -129,7 +129,7 @@ class Query(Generic[Q]):
 
         _filters = self.options.get('$filter')
         if _filters:
-            options['$filter'] = ' and '.join([str(x) for x in _filters])
+            options['$filter'] = ' and '.join([f"({str(x)})" for x in _filters])
 
         _expand = self.options.get('$expand')
         if _expand:
