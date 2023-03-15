@@ -296,7 +296,7 @@ class Query(Generic[Q]):
         """
         oldlimit = self.options.get('$top', None)
 
-        self.options['$top'] = 2
+        self.options['$top'] = 1
         data = self.all()
 
         self.options['$top'] = oldlimit
