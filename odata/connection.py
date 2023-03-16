@@ -80,13 +80,25 @@ class ODataConnection(object):
                 if 'error' in errordata:
                     odata_error = errordata.get('error')
 
-                    if 'code' in odata_error:
-                        code = odata_error.get('code') or code
-                    if 'message' in odata_error:
-                        message = odata_error.get('message') or message
+                    code = odata_error.get('code', None) or code
+                    message = odata_error.get('message', None) or message
                     if 'innererror' in odata_error:
                         ie = odata_error['innererror']
-                        detailed_message = ie.get('message') or detailed_message
+                        detailed_message = ie.get('message', None) or detailed_message
+            elif "application/problem+json" in response_ct:
+                errordata = response.json()
+                if "exception"in errordata:
+                    odata_exception = errordata.get("exception")
+                    code = errordata.get("type", None) or code
+                    code = errordata.get("errorId", None) or code
+                    detailed_message = errordata.get("detail", None) or detailed_message
+                    message = odata_exception.get("message", None) or message
+
+                    inner = ["innerexception", "innerException"]
+                    for candidate in inner:
+                        if candidate in odata_exception:
+                            ie = odata_exception[candidate]
+                            detailed_message = ie.get("message", None) or detailed_message
             else:
                 detailed_message = response.text
 
