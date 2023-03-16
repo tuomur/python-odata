@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "python-odata"
-version = "0.4.2"
+version = "0.5.0"
 description = "A simple library for read/write access to OData services."
 license="MIT"
 authors = ["Tuomas Mursu <tuomas.mursu@kapsi.fi>", "Cristian Libotean <eblis102@gmail.com>"]
